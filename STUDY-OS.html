@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyOS — Seu Sistema de Estudos</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== TEMA: ESCURO (padrão) ===== */
+  :root, [data-theme="escuro"] {
+    --bg: #0d0f0e;
+    --surface: #141614;
+    --card: #1a1d1a;
+    --border: #252825;
+    --accent: #4d9fff;
+    --accent2: #7cc8f0;
+    --accent3: #a8d4ff;
+    --text: #e8edf8;
+    --muted: #5a6680;
+    --danger: #f07c7c;
+    --grid-color: rgba(77,159,255,0.04);
+    --nav-active-bg: rgba(77,159,255,0.12);
+    --nav-active-border: rgba(77,159,255,0.25);
+    --check-text: #fff;
+    --btn-text: #fff;
+  }
+
+  /* ===== TEMA: CLARO ===== */
+  [data-theme="claro"] {
+    --bg: #f0f5ff;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --border: #d0ddf0;
+    --accent: #1565c0;
+    --accent2: #1976d2;
+    --accent3: #42a5f5;
+    --text: #0d1a33;
+    --muted: #7a92b8;
+    --danger: #d32f2f;
+    --grid-color: rgba(21,101,192,0.04);
+    --nav-active-bg: rgba(21,101,192,0.1);
+    --nav-active-border: rgba(21,101,192,0.3);
+    --check-text: #fff;
+    --btn-text: #fff;
+  }
+
+  /* ===== TEMA: GIGANTE DA COLINA (Vasco da Gama) ===== */
+  [data-theme="vasco"] {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --border: #dcdcdc;
+    --accent: #cc0000;
+    --accent2: #ff2222;
+    --accent3: #111111;
+    --text: #111111;
+    --muted: #888888;
+    --danger: #cc0000;
+    --grid-color: rgba(204,0,0,0.04);
+    --nav-active-bg: rgba(204,0,0,0.1);
+    --nav-active-border: rgba(204,0,0,0.4);
+    --check-text: #fff;
+    --btn-text: #fff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* GRID TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* VASCO: faixa diagonal decorativa */
+  [data-theme="vasco"] body::after {
+    content: '';
+    position: fixed;
+    top: -100px; left: -100px;
+    width: 500px; height: 500px;
+    background: linear-gradient(135deg, rgba(200,160,0,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== THEME SWITCHER ===== */
+  .theme-switcher {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .theme-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .theme-btn:hover { border-color: var(--accent); color: var(--text); }
+  .theme-btn.active {
+    background: var(--nav-active-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .theme-btn .theme-dot {
+    display: block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin: 0 auto 3px;
+  }
+
+  /* VASCO: cruz de malta vermelha no logo */
+  [data-theme="vasco"] .logo-title::after {
+    content: ' ✠';
+    font-size: 22px;
+    color: #cc0000;
+    text-shadow: 0 0 8px rgba(204,0,0,0.5);
+  }
+  [data-theme="vasco"] .logo-sub {
+    color: #cc0000 !important;
+    letter-spacing: 3px;
+  }
+  [data-theme="vasco"] .logo-title {
+    color: #111111 !important;
+  }
+  [data-theme="vasco"] .sidebar {
+    background: #ffffff;
+    border-right: 2px solid #dcdcdc;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+  }
+  [data-theme="vasco"] .topbar {
+    background: #ffffff;
+    border-bottom: 3px solid #cc0000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  [data-theme="vasco"] .section-card { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  [data-theme="vasco"] .metric-card { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  [data-theme="vasco"] .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+
+  /* CLARO: ajustes de contraste */
+  [data-theme="claro"] .sidebar { box-shadow: 2px 0 12px rgba(0,0,80,0.06); }
+  [data-theme="claro"] .topbar { box-shadow: 0 2px 8px rgba(0,0,80,0.06); }
+  [data-theme="claro"] .section-card { box-shadow: 0 2px 8px rgba(0,0,80,0.05); }
+  [data-theme="claro"] .metric-card { box-shadow: 0 2px 8px rgba(0,0,80,0.05); }
+  [data-theme="claro"] .modal { box-shadow: 0 20px 60px rgba(0,0,80,0.15); }
+
+  /* LAYOUT */
+  .app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+
+  .nav-section-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 0 8px;
+    margin: 16px 0 8px;
+  }
+  .nav-section-label:first-child { margin-top: 0; }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .nav-btn:hover { background: var(--card); color: var(--text); }
+  .nav-btn.active {
+    background: var(--nav-active-bg);
+    color: var(--accent);
+    border: 1px solid var(--nav-active-border);
+  }
+  .nav-btn .icon { font-size: 14px; }
+
+  .stats-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .stat-label { font-size: 10px; color: var(--muted); }
+  .stat-val { font-size: 12px; color: var(--accent); font-weight: 500; }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--text);
+  }
+  .page-title span { color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--btn-text);
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* DASHBOARD */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px; height: 60px;
+    border-radius: 0 12px 0 60px;
+    opacity: 0.06;
+  }
+  .metric-card:nth-child(1)::after { background: var(--accent); }
+  .metric-card:nth-child(2)::after { background: var(--accent2); }
+  .metric-card:nth-child(3)::after { background: var(--accent3); }
+  .metric-card:nth-child(4)::after { background: var(--danger); }
+
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .metric-val {
+    font-family: 'Instrument Serif', serif;
+    font-size: 42px;
+    line-height: 1;
+    margin: 8px 0 4px;
+    color: var(--text);
+  }
+  .metric-sub { font-size: 11px; color: var(--muted); }
+
+  .dash-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .section-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .section-body { padding: 16px 20px; }
+
+  /* TODAY TASKS */
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .task-item:last-child { border-bottom: none; }
+
+  .task-check {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.15s;
+  }
+  .task-item.done .task-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .task-item.done .task-check::after { content: '✓'; font-size: 11px; color: var(--check-text); }
+  .task-name { font-size: 13px; }
+  .task-item.done .task-name { text-decoration: line-through; color: var(--muted); }
+  .task-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* MATÉRIAS */
+  .materia-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  /* ROTINA */
+  .rotina-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px; }
+  .day-col { text-align: center; }
+  .day-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .day-col.today .day-label { color: var(--accent); }
+
+  .rotina-slot {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 6px;
+    margin-bottom: 6px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .rotina-slot:hover { border-color: var(--muted); }
+  .rotina-slot.filled { border-color: transparent; }
+  .rotina-slot .slot-time { color: var(--muted); font-size: 9px; }
+  .rotina-slot .slot-name { font-weight: 500; margin-top: 4px; }
+  .rotina-slot.empty { border-style: dashed; opacity: 0.4; }
+  .rotina-slot.empty:hover { opacity: 1; border-style: solid; }
+
+
+  
+
+  /* NOTAS */
+  .notes-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; height: calc(100vh - 130px); }
+
+  .notes-list {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    overflow-y: auto;
+  }
+
+  .notes-search {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .notes-search input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    outline: none;
+  }
+  .notes-search input:focus { border-color: var(--accent); }
+  .notes-search input::placeholder { color: var(--muted); }
+
+  .note-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .note-item:hover { background: var(--surface); }
+  .note-item.active { background: var(--nav-active-bg); border-left: 2px solid var(--accent); }
+  .note-item-title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-item-preview { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-item-date { font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+  .note-editor {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0 12px 12px 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .note-editor-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .note-title-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    outline: none;
+  }
+  .note-title-input::placeholder { color: var(--muted); }
+
+  .note-toolbar {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toolbar-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    transition: all 0.1s;
+  }
+  .toolbar-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
+
+  .note-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .note-body {
+    flex: 1;
+    padding: 20px;
+    outline: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+    overflow-y: auto;
+    resize: none;
+    background: transparent;
+    border: none;
+  }
+  .note-body:empty::before {
+    content: 'Comece a escrever sua anotação aqui...';
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  /* MATERIAS PAGE */
+  .materias-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .materia-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .materia-card:hover { transform: translateY(-2px); border-color: var(--muted); }
+  .materia-card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .materia-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 12px 0 6px;
+  }
+  .materia-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .materia-stat { font-size: 11px; color: var(--muted); }
+  .materia-stat strong { color: var(--text); }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 480px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: fadeUp 0.2s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--muted); }
+  select.form-input { cursor: pointer; }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* TIMER */
+  .timer-area {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    max-width: 400px;
+    margin: 0 auto 28px;
+  }
+  .timer-display {
+    font-family: 'Instrument Serif', serif;
+    font-size: 72px;
+    color: var(--accent);
+    line-height: 1;
+    margin: 16px 0;
+  }
+  .timer-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .timer-controls { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+
+  .week-chart { padding: 8px 0; }
+  .chart-bars { display: flex; gap: 8px; align-items: flex-end; height: 80px; }
+  .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .chart-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: var(--border);
+    transition: height 0.4s;
+    min-height: 4px;
+  }
+  .chart-bar.today-bar { background: var(--accent); }
+  .chart-day-label { font-size: 9px; color: var(--muted); }
+  .chart-val { font-size: 9px; color: var(--muted); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* TAG COLORS */
+  .c0 { background: rgba(184,240,124,0.15); color: #b8f07c; }
+  .c1 { background: rgba(124,240,216,0.15); color: #7cf0d8; }
+  .c2 { background: rgba(240,201,124,0.15); color: #f0c97c; }
+  .c3 { background: rgba(240,124,124,0.15); color: #f07c7c; }
+  .c4 { background: rgba(180,124,240,0.15); color: #b47cf0; }
+  .c5 { background: rgba(124,180,240,0.15); color: #7cb4f0; }
+
+  .empty-state { text-align: center; padding: 48px; color: var(--muted); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0d0f0e;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .color-picker { display: flex; gap: 8px; }
+  .color-swatch {
+    width: 24px; height: 24px; border-radius: 50%;
+    cursor: pointer; border: 2px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .color-swatch.selected { border-color: white; }
+
+  /* ===== MOBILE NAVBAR BOTTOM ===== */
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    gap: 0;
+  }
+  .mobile-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-nav-btn .mn-icon { font-size: 18px; line-height: 1; }
+  .mobile-nav-btn.active { color: var(--accent); }
+  .mobile-nav-btn.active .mn-icon {
+    background: var(--nav-active-bg);
+    border-radius: 8px;
+    padding: 4px 10px;
+  }
+
+  /* ===== MOBILE TOPBAR HAMBURGER ===== */
+  .hamburger {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== SIDEBAR OVERLAY (mobile) ===== */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 60;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* ===== RESPONSIVE BREAKPOINTS ===== */
+  @media (max-width: 768px) {
+    /* Layout */
+    .app { flex-direction: column; height: 100dvh; }
+
+    /* Sidebar becomes a drawer */
+    .sidebar {
+      position: fixed;
+      top: 0; left: -260px;
+      height: 100%;
+      width: 260px;
+      z-index: 70;
+      transition: left 0.25s ease;
+    }
+    .sidebar.open { left: 0; }
+
+    /* Main takes full width */
+    .main { width: 100%; flex: 1; overflow: hidden; }
+
+    /* Topbar mobile */
+    .topbar { padding: 12px 16px; }
+    .hamburger { display: block; }
+    .page-title { font-size: 16px; }
+    #topbar-action .btn-primary { font-size: 11px; padding: 7px 12px; }
+
+    /* Content padding */
+    .content { padding: 16px 14px 80px; }
+
+    /* Bottom nav */
+    .mobile-nav { display: flex; }
+
+    /* Dashboard grid: 2 cols */
+    .dash-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .metric-val { font-size: 32px; }
+
+    /* Dashboard cols: stack */
+    .dash-cols { grid-template-columns: 1fr; gap: 14px; }
+
+    /* Matérias: 1 col */
+    .materias-grid { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Rotina: scroll horizontal */
+    .rotina-grid {
+      grid-template-columns: repeat(7, minmax(110px, 1fr));
+      overflow-x: auto;
+      gap: 6px;
+      padding-bottom: 8px;
+    }
+
+    /* Notas: full width list, editor overlay */
+    .notes-layout { grid-template-columns: 1fr; height: auto; }
+    .notes-list {
+      border-radius: 12px;
+      border-right: 1px solid var(--border);
+      max-height: 300px;
+    }
+    .note-editor {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      border-radius: 0;
+      height: 100dvh;
+    }
+    .note-editor.mobile-open { display: flex; }
+    .note-editor-header {
+      padding: 12px 14px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+    }
+    .note-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 8px;
+    }
+
+    /* Timer grid: stack */
+    #page-timer > div:last-child { grid-template-columns: 1fr !important; max-width: 100% !important; }
+    .timer-display { font-size: 56px; }
+    .timer-area { padding: 24px 20px; }
+
+    /* Theme switcher: horizontal scroll */
+    .theme-switcher { gap: 4px; padding: 10px 12px; }
+    .theme-btn { font-size: 8px; padding: 5px 3px; }
+  }
+
+  @media (max-width: 400px) {
+    .dash-grid { grid-template-columns: 1fr 1fr; }
+    .metric-val { font-size: 28px; }
+    .topbar { padding: 10px 12px; }
+    .content { padding: 12px 10px 80px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="logo-title">StudyOS</div>
+      <div class="logo-sub">Sistema de Estudos</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section-label">Principal</div>
+      <button class="nav-btn active" onclick="goTo('dashboard')">
+        <span class="icon">⬡</span> Dashboard
+      </button>
+
+      <button class="nav-btn" onclick="goTo('rotina')">
+        <span class="icon">◫</span> Rotina Semanal
+      </button>
+
+      <button class="nav-btn" onclick="goTo('materias')">
+        <span class="icon">◈</span> Matérias
+      </button>
+
+      <div class="nav-section-label">Conteúdo</div>
+      <button class="nav-btn" onclick="goTo('notas')">
+        <span class="icon">◧</span> Anotações
+      </button>
+
+      <button class="nav-btn" onclick="goTo('tarefas')">
+        <span class="icon">◻</span> Tarefas
+      </button>
+
+      <div class="nav-section-label">Produtividade</div>
+      <button class="nav-btn" onclick="goTo('timer')">
+        <span class="icon">◎</span> Pomodoro
+      </button>
+
+      
+    
+      <div class="stats-footer">
+      <div class="stat-row">
+        <span class="stat-label">Hoje estudado</span>
+        <span class="stat-val" id="sb-hoje">0h</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Tarefas feitas</span>
+        <span class="stat-val" id="sb-tasks">0/0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Anotações</span>
+        <span class="stat-val" id="sb-notas">0</span>
+      </div>
+    </div>
+
+    <div class="theme-switcher">
+      <button class="theme-btn" id="tbtn-claro" onclick="setTheme('claro')" title="Tema Claro">
+        <span class="theme-dot" style="background:linear-gradient(135deg,#fff,#1565c0)"></span>
+        ☀ Claro
+      </button>
+      <button class="theme-btn active" id="tbtn-escuro" onclick="setTheme('escuro')" title="Tema Escuro">
+        <span class="theme-dot" style="background:linear-gradient(135deg,#111,#4d9fff)"></span>
+        ◑ Escuro
+      </button>
+      <button class="theme-btn" id="tbtn-vasco" onclick="setTheme('vasco')" title="Gigante da Colina — Vasco da Gama">
+        <span class="theme-dot" style="background:linear-gradient(135deg,#111 50%,#cc0000 50%);border:1px solid #444"></span>
+        ✠ Vasco
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title" id="page-title">Dashboard <span>↗</span></div>
+      </div>
+      <div id="topbar-action"></div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page active">
+        <div class="dash-grid">
+          <div class="metric-card">
+            <div class="metric-label">Horas Hoje</div>
+            <div class="metric-val" id="d-hoje">0</div>
+            <div class="metric-sub">horas estudadas</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Tarefas</div>
+            <div class="metric-val" id="d-tasks">0</div>
+            <div class="metric-sub">pendentes hoje</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Matérias</div>
+            <div class="metric-val" id="d-materias">0</div>
+            <div class="metric-sub">cadastradas</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Anotações</div>
+            <div class="metric-val" id="d-notas">0</div>
+            <div class="metric-sub">no total</div>
+          </div>
+        </div>
+
+        <div class="dash-cols">
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">Tarefas de Hoje</div>
+              <button class="btn-primary" style="font-size:11px;padding:6px 12px" onclick="openModal('modal-tarefa')">+ Nova</button>
+            </div>
+            <div class="section-body" id="dash-tasks-list"></div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">Horas por Dia (semana)</div>
+            </div>
+            <div class="section-body">
+              <div class="week-chart">
+                <div class="chart-bars" id="chart-bars"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="section-card">
+            <div class="section-header">
+              <div class="section-title">Anotações Recentes</div>
+              <button class="btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('notas')">ver todas →</button>
+            </div>
+            <div class="section-body" id="dash-notas-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROTINA -->
+      <div id="page-rotina" class="page">
+        <div class="rotina-grid" id="rotina-grid"></div>
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Legenda de Matérias</div>
+          </div>
+          <div class="section-body" id="rotina-legend" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+      </div>
+
+      <!-- MATÉRIAS -->
+      <div id="page-materias" class="page">
+        <div class="materias-grid" id="materias-grid"></div>
+      </div>
+
+      <!-- NOTAS -->
+      <div id="page-notas" class="page">
+        <div class="notes-layout">
+          <div class="notes-list">
+            <div class="notes-search">
+              <input type="text" placeholder="Buscar anotações..." id="notes-search" oninput="renderNotesList()">
+            </div>
+            <div id="notes-list-body"></div>
+          </div>
+          <div class="note-editor" id="note-editor">
+            <button class="note-back-btn" id="note-back-btn" onclick="closeNoteEditor()" style="display:none;padding:8px 14px;border-bottom:1px solid var(--border)">← Voltar</button>
+            <div class="note-editor-header">
+              <input type="text" class="note-title-input" id="note-title" placeholder="Título da anotação..." oninput="saveCurrentNote()">
+              <select class="note-select" id="note-materia" onchange="saveCurrentNote()">
+                <option value="">Sem matéria</option>
+              </select>
+              <button class="btn-danger" style="font-size:11px;padding:6px 10px" onclick="deleteCurrentNote()">✕</button>
+            </div>
+            <div class="note-toolbar">
+              <button class="toolbar-btn" onclick="fmt('bold')"><b>B</b></button>
+              <button class="toolbar-btn" onclick="fmt('italic')"><i>I</i></button>
+              <button class="toolbar-btn" onclick="fmt('underline')"><u>U</u></button>
+              <button class="toolbar-btn" onclick="fmtBlock('h2')">H2</button>
+              <button class="toolbar-btn" onclick="fmtBlock('h3')">H3</button>
+              <button class="toolbar-btn" onclick="fmtBlock('p')">¶</button>
+              <button class="toolbar-btn" onclick="fmt('insertUnorderedList')">• Lista</button>
+              <button class="toolbar-btn" onclick="fmt('insertOrderedList')">1. Lista</button>
+              <button class="toolbar-btn" onclick="fmtBlock('blockquote')">❝</button>
+              <button class="toolbar-btn" onclick="insertDivider()">—</button>
+            </div>
+            <div id="note-body" class="note-body" contenteditable="true" oninput="saveCurrentNote()"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAREFAS -->
+      <div id="page-tarefas" class="page">
+        <div class="section-card" style="margin-bottom:20px">
+          <div class="section-header">
+            <div class="section-title">Todas as Tarefas</div>
+          </div>
+          <div class="section-body" id="all-tasks-list"></div>
+        </div>
+      </div>
+
+      <!-- TIMER -->
+      <div id="page-timer" class="page">
+        <div class="timer-area">
+          <div class="timer-label" id="timer-mode-label">FOCO</div>
+          <div class="timer-display" id="timer-display">25:00</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px" id="timer-session-label">Sessão 1 de 4</div>
+          <div class="form-group" style="margin-bottom:0">
+            <select class="form-input" id="timer-materia-sel">
+              <option value="">Selecionar matéria...</option>
+            </select>
+          </div>
+          <div class="timer-controls">
+            <button class="btn-ghost" onclick="timerReset()">↺ Reset</button>
+            <button class="btn-primary" id="timer-btn" onclick="timerToggle()">▶ Iniciar</button>
+            <button class="btn-ghost" onclick="timerSkip()">Pular →</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:600px;margin:0 auto">
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Config. Timer</div></div>
+            <div class="section-body">
+              <div class="form-group">
+                <label class="form-label">Foco (min)</label>
+                <input type="number" class="form-input" id="cfg-foco" value="25" min="1" max="120" onchange="timerReset()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Pausa Curta (min)</label>
+                <input type="number" class="form-input" id="cfg-pausa" value="5" min="1" max="30" onchange="timerReset()">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Pausa Longa (min)</label>
+                <input type="number" class="form-input" id="cfg-longa" value="15" min="5" max="60" onchange="timerReset()">
+              </div>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-header"><div class="section-title">Histórico Hoje</div></div>
+            <div class="section-body" id="timer-history"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav" id="mobile-nav">
+  <button class="mobile-nav-btn active" id="mnb-dashboard" onclick="goTo('dashboard')">
+    <span class="mn-icon">⬡</span>Home
+  </button>
+  <button class="mobile-nav-btn" id="mnb-rotina" onclick="goTo('rotina')">
+    <span class="mn-icon">◫</span>Rotina
+  </button>
+  <button class="mobile-nav-btn" id="mnb-notas" onclick="goTo('notas')">
+    <span class="mn-icon">◧</span>Notas
+  </button>
+  <button class="mobile-nav-btn" id="mnb-tarefas" onclick="goTo('tarefas')">
+    <span class="mn-icon">◻</span>Tarefas
+  </button>
+  <button class="mobile-nav-btn" id="mnb-timer" onclick="goTo('timer')">
+    <span class="mn-icon">◎</span>Timer
+  </button>
+</nav>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-materia">
+  <div class="modal">
+    <div class="modal-title">Nova Matéria</div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input type="text" class="form-input" id="m-nome" placeholder="ex: Matemática">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor</label>
+      <div class="color-picker" id="m-cor-picker">
+        <div class="color-swatch selected" data-c="0" style="background:#b8f07c" onclick="selectColor(0)"></div>
+        <div class="color-swatch" data-c="1" style="background:#7cf0d8" onclick="selectColor(1)"></div>
+        <div class="color-swatch" data-c="2" style="background:#f0c97c" onclick="selectColor(2)"></div>
+        <div class="color-swatch" data-c="3" style="background:#f07c7c" onclick="selectColor(3)"></div>
+        <div class="color-swatch" data-c="4" style="background:#b47cf0" onclick="selectColor(4)"></div>
+        <div class="color-swatch" data-c="5" style="background:#7cb4f0" onclick="selectColor(5)"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Meta semanal (horas)</label>
+      <input type="number" class="form-input" id="m-meta" value="5" min="1" max="50">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-materia')">Cancelar</button>
+      <button class="btn-primary" onclick="saveMateria()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tarefa">
+  <div class="modal">
+    <div class="modal-title">Nova Tarefa</div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-input" id="t-desc" placeholder="ex: Resolver exercícios cap.3">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Matéria</label>
+      <select class="form-input" id="t-materia">
+        <option value="">Sem matéria</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input type="date" class="form-input" id="t-data">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prioridade</label>
+      <select class="form-input" id="t-prior">
+        <option value="normal">Normal</option>
+        <option value="alta">Alta</option>
+        <option value="baixa">Baixa</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-tarefa')">Cancelar</button>
+      <button class="btn-primary" onclick="saveTarefa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-slot">
+  <div class="modal">
+    <div class="modal-title" id="modal-slot-title">Editar Slot</div>
+    <div class="form-group">
+      <label class="form-label">Matéria</label>
+      <select class="form-input" id="slot-materia">
+        <option value="">Vazio</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observação</label>
+      <input type="text" class="form-input" id="slot-obs" placeholder="ex: Revisão, Exercícios...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('modal-slot')">Cancelar</button>
+      <button class="btn-primary" onclick="saveSlot()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const HOURS = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
+const COLORS = ['#b8f07c','#7cf0d8','#f0c97c','#f07c7c','#b47cf0','#7cb4f0'];
+
+let state = {
+  materias: [],
+  tarefas: [],
+  notas: [],
+  rotina: {}, // key: "day-hour" => {materia, obs}
+  pomodoroLog: [], // {date, materia, mins}
+  selectedColor: 0,
+  currentNoteId: null,
+  editingSlot: null,
+};
+
+function load() {
+  const saved = localStorage.getItem('studyos_v2');
+  if (saved) state = { ...state, ...JSON.parse(saved) };
+}
+function save() { localStorage.setItem('studyos_v2', JSON.stringify(state)); }
+
+// ===================== NAVIGATION =====================
+const pageTitles = {
+  dashboard: 'Dashboard',
+  rotina: 'Rotina Semanal',
+  materias: 'Matérias',
+  notas: 'Anotações',
+  tarefas: 'Tarefas',
+  timer: 'Pomodoro Timer'
+};
+
+const pageActions = {
+  materias: () => `<button class="btn-primary" onclick="openModal('modal-materia')">+ Nova Matéria</button>`,
+  notas: () => `<button class="btn-primary" onclick="newNote()">+ Nova Anotação</button>`,
+  tarefas: () => `<button class="btn-primary" onclick="openModal('modal-tarefa')">+ Nova Tarefa</button>`,
+  rotina: () => `<span style="font-size:11px;color:var(--muted)">Clique em um slot para editar</span>`,
+};
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  // simpler: find by onclick
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.getAttribute('onclick') === `goTo('${page}')`) b.classList.add('active');
+  });
+  document.getElementById('page-title').innerHTML = pageTitles[page] + ' <span>↗</span>';
+  const actionEl = document.getElementById('topbar-action');
+  actionEl.innerHTML = pageActions[page] ? pageActions[page]() : '';
+  renderPage(page);
+  updateMobileNav(page);
+  closeSidebar();
+  if (page !== 'notas') closeNoteEditor();
+}
+
+function renderPage(page) {
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'rotina') renderRotina();
+  if (page === 'materias') renderMaterias();
+  if (page === 'notas') renderNotas();
+  if (page === 'tarefas') renderTarefas();
+  if (page === 'timer') renderTimer();
+  renderSidebar();
+}
+
+// ===================== SIDEBAR =====================
+function renderSidebar() {
+  const today = todayStr();
+  const todayTasks = state.tarefas.filter(t => t.data === today);
+  const done = todayTasks.filter(t => t.done).length;
+  document.getElementById('sb-tasks').textContent = `${done}/${todayTasks.length}`;
+  document.getElementById('sb-notas').textContent = state.notas.length;
+  const hoje = getTodayHours();
+  document.getElementById('sb-hoje').textContent = hoje + 'h';
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const today = todayStr();
+  const todayTasks = state.tarefas.filter(t => t.data === today && !t.done);
+  document.getElementById('d-hoje').textContent = getTodayHours();
+  document.getElementById('d-tasks').textContent = todayTasks.length;
+  document.getElementById('d-materias').textContent = state.materias.length;
+  document.getElementById('d-notas').textContent = state.notas.length;
+
+  // tasks
+  const el = document.getElementById('dash-tasks-list');
+  const todayAll = state.tarefas.filter(t => t.data === today);
+  if (!todayAll.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">✓</div><p>Nenhuma tarefa para hoje</p></div>`;
+  } else {
+    el.innerHTML = todayAll.slice(0,5).map(t => taskHTML(t)).join('');
+  }
+
+  // chart
+  renderWeekChart();
+
+  // recent notes
+  const nel = document.getElementById('dash-notas-list');
+  const recent = [...state.notas].sort((a,b) => b.updated - a.updated).slice(0,4);
+  if (!recent.length) {
+    nel.innerHTML = `<div class="empty-state"><div class="icon">◧</div><p>Nenhuma anotação ainda</p></div>`;
+  } else {
+    nel.innerHTML = recent.map(n => `
+      <div class="task-item" onclick="openNote('${n.id}')">
+        <div>
+          <div class="task-name">${n.title || 'Sem título'}</div>
+          <div class="task-meta">${getMateriaName(n.materia)} · ${formatDate(n.updated)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function renderWeekChart() {
+  const today = new Date();
+  const dow = today.getDay();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    days.push(d);
+  }
+  const maxH = 8;
+  const el = document.getElementById('chart-bars');
+  el.innerHTML = days.map((d, i) => {
+    const ds = d.toISOString().split('T')[0];
+    const hrs = state.pomodoroLog
+      .filter(l => l.date === ds)
+      .reduce((acc, l) => acc + l.mins, 0) / 60;
+    const hDisplay = Math.round(hrs * 10) / 10;
+    const h = Math.max(4, (hrs / maxH) * 76);
+    const isToday = i === 6;
+    return `<div class="chart-bar-wrap">
+      <div class="chart-val">${hDisplay > 0 ? hDisplay + 'h' : ''}</div>
+      <div class="chart-bar ${isToday ? 'today-bar' : ''}" style="height:${h}px"></div>
+      <div class="chart-day-label">${DAYS[d.getDay()]}</div>
+    </div>`;
+  }).join('');
+}
+
+function getTodayHours() {
+  const today = todayStr();
+  const mins = state.pomodoroLog.filter(l => l.date === today).reduce((a, l) => a + l.mins, 0);
+  return Math.round(mins / 60 * 10) / 10;
+}
+
+function taskHTML(t) {
+  const m = state.materias.find(m => m.id === t.materia);
+  return `<div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')">
+    <div class="task-check"></div>
+    <div>
+      <div class="task-name">${t.desc}</div>
+      <div class="task-meta">
+        ${m ? `<span class="materia-tag c${m.cor}">${m.nome}</span>` : ''} 
+        ${t.prior === 'alta' ? '🔴' : t.prior === 'baixa' ? '🔵' : ''}
+        ${t.data}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===================== ROTINA =====================
+function renderRotina() {
+  const today = new Date().getDay();
+  const grid = document.getElementById('rotina-grid');
+  grid.innerHTML = DAYS.map((day, di) => {
+    const slots = HOURS.map(h => {
+      const key = `${di}-${h}`;
+      const slot = state.rotina[key];
+      const m = slot && slot.materia ? state.materias.find(m => m.id === slot.materia) : null;
+      const filled = m != null;
+      return `<div class="rotina-slot ${filled ? 'filled' : 'empty'}"
+        style="${filled ? `background:${COLORS[m.cor]}18;border:1px solid ${COLORS[m.cor]}40` : ''}"
+        onclick="editSlot(${di},'${h}')">
+        <span class="slot-time">${h}</span>
+        ${filled ? `<span class="slot-name" style="color:${COLORS[m.cor]}">${m.nome}</span>` : ''}
+        ${filled && slot.obs ? `<span style="font-size:9px;color:var(--muted)">${slot.obs}</span>` : ''}
+      </div>`;
+    }).join('');
+    return `<div class="day-col ${di === today ? 'today' : ''}">
+      <div class="day-label">${day}${di === today ? ' ←' : ''}</div>
+      ${slots}
+    </div>`;
+  }).join('');
+
+  // legend
+  const leg = document.getElementById('rotina-legend');
+  leg.innerHTML = state.materias.length ? state.materias.map(m =>
+    `<span class="materia-tag c${m.cor}">${m.nome}</span>`).join('') :
+    `<span style="color:var(--muted);font-size:12px">Cadastre matérias para preencher a rotina</span>`;
+}
+
+function editSlot(day, hour) {
+  state.editingSlot = { day, hour };
+  document.getElementById('modal-slot-title').textContent = `${DAYS[day]} às ${hour}`;
+  const sel = document.getElementById('slot-materia');
+  sel.innerHTML = `<option value="">Vazio</option>` + state.materias.map(m =>
+    `<option value="${m.id}">${m.nome}</option>`).join('');
+  const key = `${day}-${hour}`;
+  const slot = state.rotina[key];
+  sel.value = slot?.materia || '';
+  document.getElementById('slot-obs').value = slot?.obs || '';
+  openModal('modal-slot');
+}
+
+function saveSlot() {
+  const { day, hour } = state.editingSlot;
+  const key = `${day}-${hour}`;
+  const mat = document.getElementById('slot-materia').value;
+  const obs = document.getElementById('slot-obs').value;
+  if (!mat) { delete state.rotina[key]; }
+  else { state.rotina[key] = { materia: mat, obs }; }
+  save(); closeModal('modal-slot'); renderRotina();
+}
+
+// ===================== MATÉRIAS =====================
+function renderMaterias() {
+  const el = document.getElementById('materias-grid');
+  if (!state.materias.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">◈</div><p>Nenhuma matéria cadastrada.<br>Clique em "+ Nova Matéria" para começar.</p></div>`;
+    return;
+  }
+  el.innerHTML = state.materias.map(m => {
+    const notas = state.notas.filter(n => n.materia === m.id).length;
+    const tasks = state.tarefas.filter(t => t.materia === m.id).length;
+    const horas = Math.round(state.pomodoroLog.filter(l => l.materia === m.id).reduce((a,l)=>a+l.mins,0)/60*10)/10;
+    const pct = Math.min(100, Math.round((horas / (m.meta || 5)) * 100));
+    return `<div class="materia-card">
+      <div class="materia-card-accent" style="background:${COLORS[m.cor]}"></div>
+      <span class="materia-tag c${m.cor}" style="margin-top:4px">${m.nome}</span>
+      <div class="materia-name" style="color:${COLORS[m.cor]}">${m.nome}</div>
+      <div class="materia-stats">
+        <div class="materia-stat"><strong>${notas}</strong> notas</div>
+        <div class="materia-stat"><strong>${tasks}</strong> tarefas</div>
+        <div class="materia-stat"><strong>${horas}h</strong> estudadas</div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${pct}%;background:${COLORS[m.cor]}"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">${pct}% da meta semanal (${m.meta}h)</div>
+    </div>`;
+  }).join('');
+}
+
+// ===================== NOTAS =====================
+let noteTimeout;
+function renderNotas() {
+  renderNotesList();
+  populateMateriasSelects();
+  if (state.currentNoteId) openNote(state.currentNoteId, false);
+}
+
+function renderNotesList() {
+  const q = (document.getElementById('notes-search')?.value || '').toLowerCase();
+  let notas = [...state.notas].sort((a,b) => b.updated - a.updated);
+  if (q) notas = notas.filter(n => (n.title+n.body).toLowerCase().includes(q));
+  const el = document.getElementById('notes-list-body');
+  if (!notas.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">◧</div><p>Nenhuma anotação encontrada</p></div>`;
+    return;
+  }
+  el.innerHTML = notas.map(n => `
+    <div class="note-item ${n.id === state.currentNoteId ? 'active' : ''}" onclick="openNote('${n.id}')">
+      <div class="note-item-title">${n.title || 'Sem título'}</div>
+      <div class="note-item-preview">${stripHTML(n.body).substring(0,60) || '...'}</div>
+      <div class="note-item-date">${getMateriaName(n.materia)} · ${formatDate(n.updated)}</div>
+    </div>
+  `).join('');
+}
+
+function newNote() {
+  const note = { id: uid(), title: '', body: '', materia: '', updated: Date.now() };
+  state.notas.unshift(note);
+  save();
+  state.currentNoteId = note.id;
+  if (document.getElementById('page-notas').classList.contains('active')) {
+    renderNotesList();
+    openNote(note.id, false);
+    openNoteEditor();
+  } else {
+    goTo('notas');
+    setTimeout(() => openNoteEditor(), 60);
+  }
+}
+
+function openNote(id, rerender = true) {
+  const n = state.notas.find(n => n.id === id);
+  if (!n) return;
+  state.currentNoteId = id;
+  document.getElementById('note-title').value = n.title || '';
+  document.getElementById('note-body').innerHTML = n.body || '';
+  document.getElementById('note-materia').value = n.materia || '';
+  if (rerender) renderNotesList();
+}
+
+function saveCurrentNote() {
+  clearTimeout(noteTimeout);
+  noteTimeout = setTimeout(() => {
+    const n = state.notas.find(n => n.id === state.currentNoteId);
+    if (!n) return;
+    n.title = document.getElementById('note-title').value;
+    n.body = document.getElementById('note-body').innerHTML;
+    n.materia = document.getElementById('note-materia').value;
+    n.updated = Date.now();
+    save();
+    renderNotesList();
+    renderSidebar();
+  }, 400);
+}
+
+function deleteCurrentNote() {
+  if (!state.currentNoteId) return;
+  if (!confirm('Excluir esta anotação?')) return;
+  state.notas = state.notas.filter(n => n.id !== state.currentNoteId);
+  state.currentNoteId = null;
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-body').innerHTML = '';
+  save(); renderNotesList();
+}
+
+function fmt(cmd) { document.execCommand(cmd, false, null); document.getElementById('note-body').focus(); saveCurrentNote(); }
+function fmtBlock(tag) { document.execCommand('formatBlock', false, tag); document.getElementById('note-body').focus(); saveCurrentNote(); }
+function insertDivider() { document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">'); saveCurrentNote(); }
+
+// ===================== TAREFAS =====================
+function renderTarefas() {
+  const el = document.getElementById('all-tasks-list');
+  const byDate = {};
+  state.tarefas.forEach(t => {
+    if (!byDate[t.data]) byDate[t.data] = [];
+    byDate[t.data].push(t);
+  });
+  const dates = Object.keys(byDate).sort();
+  if (!dates.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">◻</div><p>Nenhuma tarefa. Clique em "+ Nova Tarefa".</p></div>`;
+    return;
+  }
+  el.innerHTML = dates.map(d => `
+    <div style="margin-bottom:8px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border)">${d === todayStr() ? '✦ HOJE' : d}</div>
+      ${byDate[d].map(t => taskHTML(t)).join('')}
+    </div>
+  `).join('');
+}
+
+function toggleTask(id) {
+  const t = state.tarefas.find(t => t.id === id);
+  if (t) { t.done = !t.done; save(); }
+  const activePage = document.querySelector('.page.active')?.id?.replace('page-', '');
+  if (activePage) renderPage(activePage);
+}
+
+function saveTarefa() {
+  const desc = document.getElementById('t-desc').value.trim();
+  if (!desc) return;
+  const tarefa = {
+    id: uid(),
+    desc,
+    materia: document.getElementById('t-materia').value,
+    data: document.getElementById('t-data').value || todayStr(),
+    prior: document.getElementById('t-prior').value,
+    done: false
+  };
+  state.tarefas.push(tarefa);
+  save(); closeModal('modal-tarefa');
+  document.getElementById('t-desc').value = '';
+  renderPage(document.querySelector('.page.active')?.id?.replace('page-', '') || 'dashboard');
+}
+
+// ===================== MATERIA SAVE =====================
+function saveMateria() {
+  const nome = document.getElementById('m-nome').value.trim();
+  if (!nome) return;
+  const m = {
+    id: uid(),
+    nome,
+    cor: state.selectedColor,
+    meta: parseInt(document.getElementById('m-meta').value) || 5
+  };
+  state.materias.push(m);
+  save(); closeModal('modal-materia');
+  document.getElementById('m-nome').value = '';
+  populateMateriasSelects();
+  renderMaterias();
+}
+
+function selectColor(c) {
+  state.selectedColor = c;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  document.querySelector(`[data-c="${c}"]`)?.classList.add('selected');
+}
+
+function populateMateriasSelects() {
+  const opts = `<option value="">Sem matéria</option>` + state.materias.map(m =>
+    `<option value="${m.id}">${m.nome}</option>`).join('');
+  ['t-materia','note-materia','timer-materia-sel','slot-materia'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+// ===================== TIMER =====================
+let timerInterval = null;
+let timerRunning = false;
+let timerPhase = 'foco'; // foco, pausa, longa
+let timerSessions = 0;
+let timerSecondsLeft = 0;
+let timerTotalSessions = 4;
+let timerPhaseStartMins = 0;
+
+function renderTimer() { populateMateriasSelects(); updateTimerDisplay(); renderTimerHistory(); }
+
+function timerGetDurations() {
+  return {
+    foco: parseInt(document.getElementById('cfg-foco').value) || 25,
+    pausa: parseInt(document.getElementById('cfg-pausa').value) || 5,
+    longa: parseInt(document.getElementById('cfg-longa').value) || 15,
+  };
+}
+
+function timerReset() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerPhase = 'foco';
+  timerSessions = 0;
+  const d = timerGetDurations();
+  timerSecondsLeft = d.foco * 60;
+  timerPhaseStartMins = d.foco;
+  document.getElementById('timer-btn').textContent = '▶ Iniciar';
+  document.getElementById('timer-mode-label').textContent = 'FOCO';
+  document.getElementById('timer-session-label').textContent = `Sessão 1 de ${timerTotalSessions}`;
+  updateTimerDisplay();
+}
+
+function timerToggle() {
+  if (timerRunning) {
+    clearInterval(timerInterval); timerRunning = false;
+    document.getElementById('timer-btn').textContent = '▶ Continuar';
+  } else {
+    timerRunning = true;
+    document.getElementById('timer-btn').textContent = '⏸ Pausar';
+    timerInterval = setInterval(() => {
+      timerSecondsLeft--;
+      updateTimerDisplay();
+      if (timerSecondsLeft <= 0) timerNextPhase();
+    }, 1000);
+  }
+}
+
+function timerNextPhase() {
+  clearInterval(timerInterval); timerRunning = false;
+  const d = timerGetDurations();
+  const matId = document.getElementById('timer-materia-sel').value;
+  if (timerPhase === 'foco') {
+    const mins = timerPhaseStartMins - Math.round(timerSecondsLeft / 60);
+    if (mins > 0) {
+      state.pomodoroLog.push({ date: todayStr(), materia: matId, mins });
+      save();
+    }
+    timerSessions++;
+    if (timerSessions % timerTotalSessions === 0) {
+      timerPhase = 'longa'; timerSecondsLeft = d.longa * 60; timerPhaseStartMins = d.longa;
+      document.getElementById('timer-mode-label').textContent = 'PAUSA LONGA';
+    } else {
+      timerPhase = 'pausa'; timerSecondsLeft = d.pausa * 60; timerPhaseStartMins = d.pausa;
+      document.getElementById('timer-mode-label').textContent = 'PAUSA CURTA';
+    }
+  } else {
+    timerPhase = 'foco'; timerSecondsLeft = d.foco * 60; timerPhaseStartMins = d.foco;
+    document.getElementById('timer-mode-label').textContent = 'FOCO';
+  }
+  document.getElementById('timer-session-label').textContent = `Sessão ${timerSessions + 1} de ${timerTotalSessions}`;
+  document.getElementById('timer-btn').textContent = '▶ Iniciar';
+  updateTimerDisplay();
+  renderTimerHistory();
+  renderSidebar();
+}
+
+function timerSkip() { timerSecondsLeft = 0; timerNextPhase(); }
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSecondsLeft / 60);
+  const s = timerSecondsLeft % 60;
+  document.getElementById('timer-display').textContent =
+    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function renderTimerHistory() {
+  const today = todayStr();
+  const logs = state.pomodoroLog.filter(l => l.date === today);
+  const el = document.getElementById('timer-history');
+  if (!logs.length) { el.innerHTML = `<p style="color:var(--muted);font-size:12px">Nenhuma sessão hoje ainda.</p>`; return; }
+  const total = logs.reduce((a,l)=>a+l.mins,0);
+  el.innerHTML = `<div style="margin-bottom:12px">
+    <div class="stat-row"><span class="stat-label">Total hoje</span><span class="stat-val">${Math.round(total/60*10)/10}h</span></div>
+  </div>` + logs.slice(-5).reverse().map(l => {
+    const m = getMateriaName(l.materia);
+    return `<div class="task-item" style="cursor:default">
+      <div><div class="task-name">${l.mins}min</div><div class="task-meta">${m}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ===================== MODALS =====================
+function openModal(id) {
+  populateMateriasSelects();
+  if (id === 'modal-tarefa') {
+    document.getElementById('t-data').value = todayStr();
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ===================== UTILS =====================
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+function getMateriaName(id) { return state.materias.find(m=>m.id===id)?.nome || ''; }
+function stripHTML(html) { return html.replace(/<[^>]*>/g,''); }
+
+function openNote(id) {
+  const n = state.notas.find(n => n.id === id);
+  if (!n) return;
+  state.currentNoteId = id;
+  if (!document.getElementById('page-notas').classList.contains('active')) {
+    goTo('notas');
+    setTimeout(() => {
+      document.getElementById('note-title').value = n.title || '';
+      document.getElementById('note-body').innerHTML = n.body || '';
+      document.getElementById('note-materia').value = n.materia || '';
+      renderNotesList();
+      openNoteEditor();
+    }, 50);
+  } else {
+    document.getElementById('note-title').value = n.title || '';
+    document.getElementById('note-body').innerHTML = n.body || '';
+    document.getElementById('note-materia').value = n.materia || '';
+    renderNotesList();
+    openNoteEditor();
+  }
+}
+
+// ===================== MOBILE =====================
+function isMobile() { return window.innerWidth <= 768; }
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+function updateMobileNav(page) {
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const mb = document.getElementById('mnb-' + page);
+  if (mb) mb.classList.add('active');
+}
+
+function openNoteEditor() {
+  if (!isMobile()) return;
+  const ed = document.getElementById('note-editor');
+  const back = document.getElementById('note-back-btn');
+  ed.classList.add('mobile-open');
+  back.style.display = 'flex';
+}
+function closeNoteEditor() {
+  const ed = document.getElementById('note-editor');
+  const back = document.getElementById('note-back-btn');
+  ed.classList.remove('mobile-open');
+  back.style.display = 'none';
+}
+
+// ===================== THEME =====================
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('studyos_theme', t);
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tbtn-' + t);
+  if (btn) btn.classList.add('active');
+
+  // Update logo subtitle for Vasco
+  const sub = document.querySelector('.logo-sub');
+  if (t === 'vasco') {
+    sub.textContent = 'GIGANTE DA COLINA';
+    sub.style.color = '#cc0000';
+  } else {
+    sub.textContent = 'Sistema de Estudos';
+    sub.style.color = '';
+  }
+}
+
+// ===================== INIT =====================
+load();
+const savedTheme = localStorage.getItem('studyos_theme') || 'escuro';
+setTheme(savedTheme);
+timerReset();
+populateMateriasSelects();
+renderDashboard();
+renderSidebar();
+</script>
+</body>
+</html>
