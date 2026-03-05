@@ -778,7 +778,177 @@
   .prof-chat::-webkit-scrollbar-thumb{
     background:var(--border);
     border-radius:2px;
-  }  
+  }
+  
+  
+
+  /* ===================== CHAT PROFESSOR ===================== */
+
+  .prof-chat{
+  height:400px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:15px;
+  background:#000000;
+  border-radius:10px;
+  }
+
+  /* mensagens */
+
+  .msg{
+  padding:10px 14px;
+  border-radius:10px;
+  max-width:70%;
+  font-size:14px;
+  line-height:1.4;
+  }
+
+  /* aluno */
+
+  .msg.aluno{
+  align-self:flex-end;
+  background:#2563eb;
+  color:white;
+  }
+
+  /* professor */
+
+  .msg.professor{
+  align-self:flex-start;
+  background:#1f2937;
+  color:#e5e7eb;
+  }
+
+  /* digitando */
+
+  .typing{
+  font-style:italic;
+  opacity:0.7;
+  }
+
+  /* input area */
+
+  .chat-input-area{
+  display:flex;
+  gap:10px;
+  margin-top:15px;
+  }
+
+
+
+  /* ===================== PROFESSOR IA ===================== */
+
+  .professor-wrapper{
+
+  height:calc(100vh - 120px);
+  display:flex;
+  flex-direction:column;
+
+  background:var(--chat-bg);
+  border-radius:12px;
+
+  overflow:hidden;
+
+  }
+
+
+  /* CHAT */
+
+  .prof-chat{
+
+  flex:1;
+  overflow-y:auto;
+  padding:30px;
+
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+
+  }
+
+
+  /* INPUT */
+
+  .prof-input-area{
+
+  display:flex;
+  gap:10px;
+  padding:15px;
+
+  border-top:1px solid #000000;
+
+  background:var(--chat-input-bg);
+
+  }
+
+  .prof-input-area input{
+
+  flex:1;
+
+  padding:12px;
+
+  border-radius:8px;
+  border:1px solid #ccc;
+
+  font-size:14px;
+
+  }
+
+  .prof-input-area button{
+
+  background:#e11d48;
+  color:white;
+
+  border:none;
+
+  padding:12px 18px;
+
+  border-radius:8px;
+
+  cursor:pointer;
+
+  }
+
+  /* ===================== estilo das mensagens ===================== */
+
+  .msg{
+
+  max-width:650px;
+  padding:14px 18px;
+
+  border-radius:10px;
+
+  line-height:1.5;
+  font-size:14px;
+
+  }
+
+  .msg.aluno{
+
+  align-self:flex-end;
+
+  background:#2563eb;
+  color:white;
+
+  }
+
+  .msg.professor{
+
+  align-self:flex-start;
+
+  background:#f1f5f9;
+  color:#111;
+
+  }
+
+  .dark .msg.professor{
+
+  background:#1e293b;
+  color:white;
+
+  }
 
   /* ===== MOBILE NAVBAR BOTTOM ===== */
   .mobile-nav {
@@ -1191,23 +1361,31 @@
         </div>
       </div>
 
-      <!-- DÚVIDAS -->
+      <!-- DUVIDAS -->
+     <!-- ===================== PROFESSOR IA ===================== -->
+
       <div id="page-duvidas" class="page">
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-title">Professor IA</div>
+
+        <div class="professor-wrapper">
+
+          <div id="prof-chat" class="prof-chat"></div>
+
+          <div class="prof-input-area">
+
+            <input 
+            type="text" 
+            id="prof-input" 
+            placeholder="Digite sua dúvida..."
+            >
+
+            <button onclick="askProfessor()">
+              Perguntar
+            </button>
+
           </div>
-          <div class="section-body">
 
-            <div class="prof-chat" id="prof-chat"></div>
-
-            <div style="display:flex;gap:10px;margin-top:15px">
-              <input type="text" class="form-input" id="prof-input" placeholder="Digite sua dúvida...">
-              <button class="btn-primary" onclick="askprofessor()">Perguntar</button>
-            </div>
-
-          </div>
         </div>
+
       </div>
 
     </div><!-- /content -->
@@ -1918,37 +2096,192 @@ function setTheme(t) {
     sub.style.color = '';
   }
 }
+// ===================== CONFIGURAÇÃO DO PROFESSOR =====================
 
+const PROFESSOR_PROMPT = `
+  Você é um professor muito didático, paciente e atencioso.
+
+  REGRAS:
+  - Explique de forma clara
+  - Use tópicos organizados
+  - Use pequenos símbolos para facilitar o estudo
+
+  Símbolos:
+  📌 conceito importante
+  📖 definição
+  🧠 explicação
+  💡 exemplo
+  ⚠ atenção
+  📝 resumo
+
+  Quando explicar um assunto use esta estrutura:
+
+  📖 Definição
+  🧠 Explicação
+  💡 Exemplo
+  ⚕ Aplicação prática
+
+  Quando o aluno pedir resumo:
+  - faça um resumo curto
+  - use tópicos
+  - use símbolos
+
+  Sempre fale como um professor educado e motivador.
+`;
 // ===================== TUTOR IA =====================
 
-async function tutorIA(pergunta) {
-  try {
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama3",
-        prompt: pergunta,
-        stream: false
-      })
-    });
+function addMensagem(texto,tipo){
 
-    if (!response.ok) {
-      throw new Error("Erro na resposta do servidor");
-    }
+const chat = document.getElementById("prof-chat")
 
-    const data = await response.json();
-    return data.response;
+const msg = document.createElement("div")
 
-  } catch (error) {
-    console.error(error);
-    return "⚠ Erro ao conectar com a IA. Verifique se o Ollama está rodando.";
-  }
+msg.className = "msg " + tipo
+
+msg.innerText = texto
+
+chat.appendChild(msg)
+
+chat.scrollTop = chat.scrollHeight
+
 }
+
+// ===================== TUTOR IA DIGITANDO =====================
+function mostrarDigitando(){
+
+const chat = document.getElementById("prof-chat")
+
+const typing = document.createElement("div")
+
+typing.className = "msg professor typing"
+
+typing.id = "typing"
+
+typing.innerText = "👨‍🏫 Professor está pensando..."
+
+chat.appendChild(typing)
+
+chat.scrollTop = chat.scrollHeight
+
+}
+
+// ===================== DIGITANDO REMOVER =====================
+function removerDigitando(){
+
+const typing = document.getElementById("typing")
+
+if(typing){
+typing.remove()
+}
+
+}
+
+// ===================== CONECTAR COM IA =====================
+
+async function tutorIA(pergunta){
+
+const promptCompleto = `
+${PROFESSOR_PROMPT}
+
+Aluno: ${pergunta}
+
+Professor:
+`
+
+try{
+
+const response = await fetch("http://localhost:11434/api/generate",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+model:"llama3",
+
+prompt:promptCompleto,
+
+stream:false,
+
+options:{
+temperature:0.6,
+top_p:0.9,
+num_predict:500
+}
+
+})
+
+})
+
+if(!response.ok){
+throw new Error("Erro no servidor")
+}
+
+const data = await response.json()
+
+return data.response
+
+}
+
+catch(error){
+
+console.error(error)
+
+return "⚠ Erro ao conectar com a IA."
+
+}
+
+}
+
+// ===================== ENVIAR PERGUNTA =====================
+async function enviarPerguntaIA(){
+
+const input = document.getElementById("prof-input")
+
+const pergunta = input.value.trim()
+
+if(!pergunta) return
+
+addMensagem(pergunta,"aluno")
+
+input.value=""
+
+mostrarDigitando()
+
+const resposta = await tutorIA(pergunta)
+
+removerDigitando()
+
+addMensagem(resposta,"professor")
+
+}
+
+// ===================== BOTÃO DE ENVIO =====================
+
 function askProfessor(){
-  enviarPerguntaIA();
+
+enviarPerguntaIA()
+
 }
-  
+
+// ===================== ENTER PARA ENVIAR =====================
+document
+.getElementById("prof-input")
+.addEventListener("keypress",function(e){
+
+if(e.key === "Enter"){
+askProfessor()
+}
+
+})
+
+
+
+
+
 
 // ===================== INIT =====================
 load();
