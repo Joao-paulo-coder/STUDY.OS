@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="StudyOS">
 <link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <title>StudyOS — Seu Sistema de Estudos</title>
@@ -2095,6 +2096,35 @@ function fecharDetalheMateria(event) {
   document.getElementById('materia-modal-overlay').classList.remove('open');
 }
 
+function excluirMateria() {
+  const titulo = document.getElementById('materia-modal-title').textContent;
+  if (!confirm(`Excluir a matéria "${titulo}"?
+
+As notas e tarefas vinculadas não serão excluídas, apenas desvinculadas.`)) return;
+
+  const id = estado.materias.find(m => m.nome === titulo)?.id;
+  if (!id) return;
+
+  // Remover matéria
+  estado.materias = estado.materias.filter(m => m.id !== id);
+
+  // Desvincular notas e tarefas
+  estado.notas = estado.notas.map(n => n.materia === id ? {...n, materia: ''} : n);
+  estado.tarefas = estado.tarefas.map(t => t.materia === id ? {...t, materia: ''} : t);
+
+  // Remover do Supabase se logado
+  if (sbUser) {
+    sb.from('materias').delete().eq('id', id).then(() => {});
+  }
+
+  salvarESync();
+  fecharDetalheMateria(null);
+  renderMaterias();
+  popularSelecoesMaterias();
+  renderDashboard();
+  toast(`Matéria "${titulo}" excluída`, 'success');
+}
+
 // ===================== ANOTAÇÕES =====================
 let timeoutNota;
 function renderNotas() {
@@ -2921,6 +2951,97 @@ function atualizarBotaoEnvio() {
 
 
 // --- Chamada ao Ollama com histórico ---
+// ===================== SUPABASE =====================
+const SUPABASE_URL = 'https://zafhdlehaukexusnpojm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphZmhkbGVoYXVrZXh1c25wb2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjI4ODIsImV4cCI6MjA4ODgzODg4Mn0.aH0WrJKnyrngcFDUugcYNLGksk8Iu9Cs5smvX2Vv_ag';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sbUser = null;
+
+// Verificar sessão — se não logado, redireciona para login
+async function verificarSessao() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    window.location.href = 'index.html';
+    return false;
+  }
+  sbUser = session.user;
+  // Mostrar nome do usuário na sidebar
+  const meta = sbUser.user_metadata;
+  const nome = meta?.nome || sbUser.email.split('@')[0];
+  const el = document.getElementById('sb-user-nome');
+  if (el) el.textContent = nome;
+  return true;
+}
+
+// Logout
+async function logout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+// ── SYNC SUPABASE ──
+async function syncSupabase() {
+  if (!sbUser) return;
+  try {
+    const uid = sbUser.id;
+
+    // Salvar matérias
+    for (const m of estado.materias) {
+      await sb.from('materias').upsert({ id: m.id, user_id: uid, nome: m.nome, cor: m.cor, meta: m.meta });
+    }
+    // Salvar tarefas
+    for (const t of estado.tarefas) {
+      await sb.from('tarefas').upsert({ id: t.id, user_id: uid, descricao: t.desc, materia: t.materia, data: t.data, hora: t.hora, prior: t.prior, done: t.done });
+    }
+    // Salvar notas
+    for (const n of estado.notas) {
+      await sb.from('notas').upsert({ id: n.id, user_id: uid, title: n.title, body: n.body, materia: n.materia, updated: n.updated });
+    }
+    // Salvar rotina
+    for (const [key, val] of Object.entries(estado.rotina)) {
+      await sb.from('rotina').upsert({ id: uid + '-' + key, user_id: uid, slot_key: key, materia: val.materia, obs: val.obs });
+    }
+  } catch(e) {
+    console.error('Erro sync:', e);
+  }
+}
+
+// Carregar dados do Supabase
+async function carregarSupabase() {
+  if (!sbUser) return;
+  try {
+    const uid = sbUser.id;
+    const [mat, tar, not, rot, pom] = await Promise.all([
+      sb.from('materias').select('*').eq('user_id', uid),
+      sb.from('tarefas').select('*').eq('user_id', uid),
+      sb.from('notas').select('*').eq('user_id', uid),
+      sb.from('rotina').select('*').eq('user_id', uid),
+      sb.from('pomodoro_log').select('*').eq('user_id', uid),
+    ]);
+
+    if (mat.data?.length) estado.materias = mat.data.map(m => ({ id: m.id, nome: m.nome, cor: m.cor, meta: m.meta }));
+    if (tar.data?.length) estado.tarefas = tar.data.map(t => ({ id: t.id, desc: t.descricao, materia: t.materia, data: t.data, hora: t.hora, prior: t.prior, done: t.done }));
+    if (not.data?.length) estado.notas = not.data.map(n => ({ id: n.id, title: n.title, body: n.body, materia: n.materia, updated: n.updated }));
+    if (rot.data?.length) {
+      estado.rotina = {};
+      for (const r of rot.data) estado.rotina[r.slot_key] = { materia: r.materia, obs: r.obs };
+    }
+    if (pom.data?.length) estado.pomodoroLog = pom.data.map(p => ({ date: p.data, materia: p.materia, mins: p.mins }));
+
+    salvar(); // sincronizar com localStorage também
+  } catch(e) {
+    console.error('Erro ao carregar do Supabase:', e);
+  }
+}
+
+// Sync automático a cada 30s e ao salvar
+let syncTimer = null;
+function salvarESync() {
+  salvar();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncSupabase, 3000); // debounce 3s
+}
+
 const GROQ_KEY = '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';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
@@ -3378,15 +3499,24 @@ function fecharAlerta() {
 }
 
 // ===================== INICIALIZAÇÃO =====================
-carregar();
-const temaSalvo = localStorage.getItem('studyos_theme') || 'escuro';
-setTheme(temaSalvo);
-timerReset();
-popularSelecoesMaterias();
-renderDashboard();
-verificarAtrasadas();
-pedirPermissaoNotificacao();
-if (!localStorage.getItem('studyos_onboarding_done')) setTimeout(abrirOnboarding, 600);
+async function initApp() {
+  const logado = await verificarSessao();
+  if (!logado) return;
+  carregar();
+  const temaSalvo = localStorage.getItem('studyos_theme') || 'escuro';
+  setTheme(temaSalvo);
+  timerReset();
+  // Carregar dados do Supabase e depois renderizar
+  await carregarSupabase();
+  popularSelecoesMaterias();
+  renderDashboard();
+  verificarAtrasadas();
+  pedirPermissaoNotificacao();
+  if (!localStorage.getItem('studyos_onboarding_done')) setTimeout(abrirOnboarding, 600);
+  // Sync periódico
+  setInterval(syncSupabase, 30000);
+}
+initApp();
 
 </script>
 </head>
@@ -3459,6 +3589,10 @@ if (!localStorage.getItem('studyos_onboarding_done')) setTimeout(abrirOnboarding
     </nav>
 
     <div class="stats-footer">
+      <div class="stat-row" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        <span class="stat-label" style="font-size:11px;opacity:0.6">◎ <span id="sb-user-nome">...</span></span>
+        <button onclick="logout()" title="Sair" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0;font-family:var(--font-mono)">sair →</button>
+      </div>
       <div class="stat-row">
         <span class="stat-label">Hoje estudado</span>
         <span class="stat-val" id="sb-hoje">0h</span>
@@ -4130,7 +4264,10 @@ if (!localStorage.getItem('studyos_onboarding_done')) setTimeout(abrirOnboarding
           <div id="materia-modal-tag" class="materia-tag" style="margin-bottom:6px"></div>
           <div class="materia-modal-title" id="materia-modal-title"></div>
         </div>
-        <button class="materia-modal-close" onclick="fecharDetalheMateria(null)">×</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btn-excluir-materia" onclick="excluirMateria()" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font-mono);transition:all 0.2s" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">⊘ Excluir</button>
+          <button class="materia-modal-close" onclick="fecharDetalheMateria(null)">×</button>
+        </div>
       </div>
       <div class="materia-modal-stats" id="materia-modal-stats"></div>
       <div class="materia-modal-body" id="materia-modal-body"></div>
