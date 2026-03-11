@@ -3274,6 +3274,70 @@ function renderRelatorio() {
     : `<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Nenhum dia com estudo registrado</div>`;
 }
 
+
+// ===================== PWA INSTALL =====================
+let pwaInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaInstallPrompt = e;
+  const btn = document.getElementById('btn-instalar-pwa');
+  if (btn) btn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('btn-instalar-pwa');
+  if (btn) btn.style.display = 'none';
+  toast('App instalado com sucesso!', 'success');
+});
+
+function instalarPWA() {
+  if (!pwaInstallPrompt) return;
+  pwaInstallPrompt.prompt();
+  pwaInstallPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      toast('Instalando StudyOS...', 'success');
+    }
+    pwaInstallPrompt = null;
+    const btn = document.getElementById('btn-instalar-pwa');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+function mostrarInstrucaoIOS() {
+  // Remover toast anterior se existir
+  const old = document.getElementById('pwa-ios-toast');
+  if (old) old.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'pwa-ios-toast';
+  toast.className = 'pwa-ios-toast';
+  toast.innerHTML = `
+    <span class="pwa-ios-toast-close" onclick="this.parentElement.remove()">×</span>
+    <div class="pwa-ios-toast-title">📲 Adicionar à Tela Inicial</div>
+    <div class="pwa-ios-toast-desc">
+      1. Toque em <strong>Compartilhar</strong> (ícone □↑ na barra inferior)<br>
+      2. Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong><br>
+      3. Confirme tocando em <strong>Adicionar</strong>
+    </div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentElement) toast.remove(); }, 10000);
+}
+
+// Detectar iOS e mostrar botão correspondente
+function detectPWAPlatform() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isIOS = /iphone|ipad|ipod/i.test(ua);
+  const isMac = /macintosh/i.test(ua) && navigator.maxTouchPoints > 1; // iPad com iPadOS
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if ((isIOS || isMac) && !isStandalone) {
+    const btn = document.getElementById('btn-instalar-ios');
+    if (btn) btn.style.display = 'flex';
+  }
+}
+document.addEventListener('DOMContentLoaded', detectPWAPlatform);
+
 // ===================== ALERTA TAREFAS ATRASADAS =====================
 let alertaFechado = false;
 
@@ -3383,6 +3447,14 @@ if (!localStorage.getItem('studyos_onboarding_done')) setTimeout(abrirOnboarding
       <div class="nav-section-label">Dúvidas</div>
       <button class="nav-btn" onclick="goTo('duvidas')">
         <span class="icon">◎</span> Professor
+      </button>
+
+      <div class="nav-section-label">Recursos</div>
+      <button class="nav-btn" id="btn-instalar-pwa" onclick="instalarPWA()" style="display:none">
+        <span class="icon">⊕</span> Adicionar à tela inicial
+      </button>
+      <button class="nav-btn" id="btn-instalar-ios" onclick="mostrarInstrucaoIOS()" style="display:none">
+        <span class="icon">⊕</span> Adicionar à tela inicial
       </button>
     </nav>
 
