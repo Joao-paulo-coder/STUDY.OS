@@ -2965,6 +2965,15 @@ async function verificarSessao() {
     return false;
   }
   sbUser = session.user;
+
+  // Detectar troca de usuário — limpar localStorage se for outra conta
+  const uidSalvo = localStorage.getItem('studyos_uid');
+  if (uidSalvo && uidSalvo !== sbUser.id) {
+    localStorage.removeItem('studyos_v2');
+    localStorage.removeItem('studyos_onboarding_done');
+  }
+  localStorage.setItem('studyos_uid', sbUser.id);
+
   // Mostrar nome do usuário na sidebar
   const meta = sbUser.user_metadata;
   const nome = meta?.nome || sbUser.email.split('@')[0];
@@ -3019,16 +3028,18 @@ async function carregarSupabase() {
       sb.from('pomodoro_log').select('*').eq('user_id', uid),
     ]);
 
-    if (mat.data?.length) estado.materias = mat.data.map(m => ({ id: m.id, nome: m.nome, cor: m.cor, meta: m.meta }));
-    if (tar.data?.length) estado.tarefas = tar.data.map(t => ({ id: t.id, desc: t.descricao, materia: t.materia, data: t.data, hora: t.hora, prior: t.prior, done: t.done }));
-    if (not.data?.length) estado.notas = not.data.map(n => ({ id: n.id, title: n.title, body: n.body, materia: n.materia, updated: n.updated }));
+    // Sempre sobrescrever estado com dados do Supabase
+    // Se array vazio, zera — garante isolamento entre usuários
+    estado.materias = mat.data?.length ? mat.data.map(m => ({ id: m.id, nome: m.nome, cor: m.cor, meta: m.meta })) : [];
+    estado.tarefas = tar.data?.length ? tar.data.map(t => ({ id: t.id, desc: t.descricao, materia: t.materia, data: t.data, hora: t.hora, prior: t.prior, done: t.done })) : [];
+    estado.notas = not.data?.length ? not.data.map(n => ({ id: n.id, title: n.title, body: n.body, materia: n.materia, updated: n.updated })) : [];
+    estado.rotina = {};
     if (rot.data?.length) {
-      estado.rotina = {};
       for (const r of rot.data) estado.rotina[r.slot_key] = { materia: r.materia, obs: r.obs };
     }
-    if (pom.data?.length) estado.pomodoroLog = pom.data.map(p => ({ date: p.data, materia: p.materia, mins: p.mins }));
+    estado.pomodoroLog = pom.data?.length ? pom.data.map(p => ({ date: p.data, materia: p.materia, mins: p.mins })) : [];
 
-    salvar(); // sincronizar com localStorage também
+    salvar();
   } catch(e) {
     console.error('Erro ao carregar do Supabase:', e);
   }
