@@ -32,10 +32,7 @@
     --nav-active-border: rgba(77,159,255,0.25);
     --check-text: #fff;
     --btn-text: #fff;
-    --chat-bg: #0d0f0e;
-    --chat-user-bg: #2563eb;
-    --chat-prof-bg: #1a1d1a;
-    --chat-prof-color: #e8edf8;
+    --font-mono: 'DM Mono', monospace;
   }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -79,10 +76,6 @@
     --nav-active-border: var(--custom-nav-border, rgba(77,159,255,0.25));
     --check-text: #fff;
     --btn-text: #fff;
-    --chat-bg: var(--custom-bg, #0d0f0e);
-    --chat-user-bg: var(--custom-accent, #4d9fff);
-    --chat-prof-bg: var(--custom-card, #1a1d1a);
-    --chat-prof-color: var(--custom-text, #e8edf8);
   }
 
   /* ===== MODAL TEMA CUSTOM ===== */
@@ -212,8 +205,6 @@
   .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .stat-label { font-size: 10px; color: var(--muted); }
   .stat-val { font-size: 12px; color: var(--accent); font-weight: 500; }
-
-
 
 
   /* ===== MODAL NOVIDADES ===== */
@@ -492,19 +483,6 @@
 
   .materia-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
 
-  /* ===== ROTINA ===== */
-  .rotina-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px; }
-  .day-col { text-align: center; }
-  .day-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-  .day-col.today .day-label { color: var(--accent); }
-
-  .rotina-slot { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 6px; margin-bottom: 6px; font-size: 10px; cursor: pointer; transition: all 0.15s; min-height: 52px; display: flex; flex-direction: column; justify-content: space-between; }
-  .rotina-slot:hover { border-color: var(--muted); }
-  .rotina-slot.filled { border-color: transparent; }
-  .rotina-slot .slot-time { color: var(--muted); font-size: 9px; }
-  .rotina-slot .slot-name { font-weight: 500; margin-top: 4px; }
-  .rotina-slot.empty { border-style: dashed; opacity: 0.4; }
-  .rotina-slot.empty:hover { opacity: 1; border-style: solid; }
 
   /* ===== NOTAS ===== */
   .notes-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; height: calc(100vh - 130px); }
@@ -693,7 +671,6 @@
   .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 13px; }
 
-  .badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #0d0f0e; font-size: 10px; font-weight: 600; }
   .color-picker { display: flex; gap: 8px; }
   .color-swatch { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
   .color-swatch.selected { border-color: white; }
@@ -702,19 +679,6 @@
      PROFESSOR IA — ESTILO CHATGPT
      ====================================================== */
 
-  /* Variáveis específicas do chat — seguem o tema ativo */
-  :root, [data-theme="escuro"] {
-    --cgpt-bg: var(--bg);
-    --cgpt-surface: var(--surface);
-    --cgpt-border: var(--border);
-    --cgpt-text: var(--text);
-    --cgpt-muted: var(--muted);
-    --cgpt-user-bg: var(--card);
-    --cgpt-input-bg: var(--card);
-    --cgpt-btn-hover: var(--surface);
-    --cgpt-send-enabled: var(--text);
-    --cgpt-send-icon: var(--bg);
-  }
   /* ===== TEMA: CLARO ===== */
   [data-theme="claro"] {
     --bg: #f0f5ff;
@@ -732,39 +696,7 @@
     --nav-active-border: rgba(21,101,192,0.3);
     --check-text: #fff;
     --btn-text: #fff;
-    --chat-bg: #f0f5ff;
-    --chat-user-bg: #1565c0;
-    --chat-prof-bg: #ffffff;
-    --chat-prof-color: #0d1a33;
   }
-
-  [data-theme="claro"] {
-    --cgpt-bg: var(--bg);
-    --cgpt-surface: var(--surface);
-    --cgpt-border: var(--border);
-    --cgpt-text: var(--text);
-    --cgpt-muted: var(--muted);
-    --cgpt-user-bg: var(--card);
-    --cgpt-input-bg: var(--card);
-    --cgpt-btn-hover: var(--surface);
-    --cgpt-send-enabled: var(--text);
-    --cgpt-send-icon: var(--bg);
-  }
-
-  /* Tema custom herda do tema principal automaticamente */
-  [data-theme="custom"] {
-    --cgpt-bg: var(--bg);
-    --cgpt-surface: var(--surface);
-    --cgpt-border: var(--border);
-    --cgpt-text: var(--text);
-    --cgpt-muted: var(--muted);
-    --cgpt-user-bg: var(--card);
-    --cgpt-input-bg: var(--card);
-    --cgpt-btn-hover: var(--surface);
-    --cgpt-send-enabled: var(--text);
-    --cgpt-send-icon: var(--bg);
-  }
-
 
 
   /* Página ocupa tudo sem padding */
@@ -778,7 +710,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--cgpt-bg);
+    background: var(--bg);
     overflow: hidden;
     position: relative;
   }
@@ -793,10 +725,10 @@
     padding: 24px 16px 12px;
     gap: 0;
     scrollbar-width: thin;
-    scrollbar-color: var(--cgpt-border) transparent;
+    scrollbar-color: var(--border) transparent;
   }
   .prof-chat::-webkit-scrollbar { width: 6px; }
-  .prof-chat::-webkit-scrollbar-thumb { background: var(--cgpt-border); border-radius: 3px; }
+  .prof-chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* Cada grupo de mensagem fica centralizado com largura máxima */
   .msg-group {
@@ -812,8 +744,8 @@
     align-items: flex-end;
   }
   .msg-group.aluno .msg-bubble {
-    background: var(--cgpt-user-bg);
-    color: var(--cgpt-text);
+    background: var(--card);
+    color: var(--text);
     padding: 10px 16px;
     border-radius: 18px;
     font-size: 15px;
@@ -850,13 +782,13 @@
   .msg-group.professor .msg-name {
     font-size: 13px;
     font-weight: 600;
-    color: var(--cgpt-text);
+    color: var(--text);
     margin-bottom: 4px;
     font-family: -apple-system, 'Segoe UI', sans-serif;
   }
   .msg-group.professor .msg-bubble {
     background: transparent;
-    color: var(--cgpt-text);
+    color: var(--text);
     font-size: 15px;
     line-height: 1.75;
     word-break: break-word;
@@ -874,7 +806,7 @@
   .typing-dots span {
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--cgpt-muted);
+    background: var(--muted);
     animation: bounce-dot 1.2s infinite ease-in-out;
   }
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -886,14 +818,6 @@
 
   /* Imagem gerada */
   
-  .msg-image-wrap img {
-    max-width: 380px;
-    width: 100%;
-    border-radius: 12px;
-    border: 1px solid var(--cgpt-border);
-    display: block;
-  }
-  .msg-image-wrap 
 
   /* Badge PDF carregado */
   .pdf-badge {
@@ -901,11 +825,11 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: var(--cgpt-surface);
-    border: 1px solid var(--cgpt-border);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     font-size: 12px;
-    color: var(--cgpt-text);
+    color: var(--text);
     font-family: -apple-system, 'Segoe UI', sans-serif;
     margin-bottom: 4px;
     max-width: fit-content;
@@ -917,7 +841,7 @@
   /* ── Área de input estilo ChatGPT ── */
   .prof-input-area {
     padding: 12px 16px 20px;
-    background: var(--cgpt-bg);
+    background: var(--bg);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -928,8 +852,8 @@
   .prof-input-box {
     width: 100%;
     max-width: 760px;
-    background: var(--cgpt-input-bg);
-    border: 1px solid var(--cgpt-border);
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 10px 14px 10px 14px;
     display: flex;
@@ -938,8 +862,8 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .prof-input-box:focus-within {
-    border-color: var(--cgpt-muted);
-    box-shadow: 0 0 0 1px var(--cgpt-muted);
+    border-color: var(--muted);
+    box-shadow: 0 0 0 1px var(--muted);
   }
 
   /* Linha com ícones de ferramentas (dentro da caixa) */
@@ -954,26 +878,26 @@
     gap: 5px;
     padding: 5px 10px;
     border-radius: 20px;
-    border: 1px solid var(--cgpt-border);
+    border: 1px solid var(--border);
     background: transparent;
-    color: var(--cgpt-muted);
+    color: var(--muted);
     font-family: -apple-system, 'Segoe UI', sans-serif;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
   }
-  .prof-box-btn:hover { background: var(--cgpt-btn-hover); color: var(--cgpt-text); }
-  .prof-box-btn.active { background: var(--cgpt-btn-hover); color: var(--cgpt-text); border-color: var(--cgpt-text); }
+  .prof-box-btn:hover { background: var(--surface); color: var(--text); }
+  .prof-box-btn.active { background: var(--surface); color: var(--text); border-color: var(--text); }
   .prof-pdf-chip {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     padding: 4px 10px;
-    background: var(--cgpt-btn-hover);
+    background: var(--surface);
     border-radius: 20px;
     font-size: 12px;
-    color: var(--cgpt-text);
+    color: var(--text);
     font-family: -apple-system, 'Segoe UI', sans-serif;
     max-width: 200px;
     white-space: nowrap;
@@ -983,14 +907,14 @@
   .pdf-chip-remove {
     background: none;
     border: none;
-    color: var(--cgpt-muted);
+    color: var(--muted);
     cursor: pointer;
     font-size: 14px;
     line-height: 1;
     padding: 0;
     flex-shrink: 0;
   }
-  .pdf-chip-remove:hover { color: var(--cgpt-text); }
+  .pdf-chip-remove:hover { color: var(--text); }
 
   /* Linha do textarea + botão enviar */
   .prof-input-row {
@@ -1003,7 +927,7 @@
     background: transparent;
     border: none;
     outline: none;
-    color: var(--cgpt-text);
+    color: var(--text);
     font-family: -apple-system, 'Segoe UI', sans-serif;
     font-size: 15px;
     line-height: 1.6;
@@ -1012,15 +936,15 @@
     max-height: 200px;
     padding: 2px 0;
   }
-  .prof-input::placeholder { color: var(--cgpt-muted); }
+  .prof-input::placeholder { color: var(--muted); }
 
   /* Botão enviar — círculo cinza → preto quando há texto */
   .prof-send-btn {
     width: 34px; height: 34px;
     border-radius: 50%;
     border: none;
-    background: var(--cgpt-border);
-    color: var(--cgpt-muted);
+    background: var(--border);
+    color: var(--muted);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1029,8 +953,8 @@
     transition: all 0.15s;
   }
   .prof-send-btn.has-text {
-    background: var(--cgpt-send-enabled);
-    color: var(--cgpt-send-icon);
+    background: var(--text);
+    color: var(--bg);
   }
   .prof-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .prof-send-btn svg { width: 16px; height: 16px; }
@@ -1038,7 +962,7 @@
   /* Rodapé de aviso */
   .prof-footer-note {
     font-size: 11px;
-    color: var(--cgpt-muted);
+    color: var(--muted);
     text-align: center;
     margin-top: 8px;
     font-family: -apple-system, 'Segoe UI', sans-serif;
@@ -1116,9 +1040,6 @@
     /* Matérias: 1 coluna */
     .materias-grid { grid-template-columns: 1fr; gap: 12px; }
 
-    /* Rotina: scroll horizontal */
-    .rotina-grid { grid-template-columns: repeat(7, minmax(110px, 1fr)); overflow-x: auto; gap: 6px; padding-bottom: 8px; }
-
     /* Notas: lista + editor sobreposto */
     .notes-layout { grid-template-columns: 1fr; height: auto; }
     .notes-list { border-radius: 12px; border-right: 1px solid var(--border); max-height: 300px; }
@@ -1150,11 +1071,6 @@
     /* Quiz config no chat */
     #qc-qtd, #qc-dif, #qc-tipo { font-size: 12px; }
 
-    /* Abas professor */
-    .prof-tab { padding: 8px 10px; font-size: 12px; }
-
-    /* Timeboxing: inputs em coluna */
-    #metodo-timebox .timer-area .form-group { margin-bottom: 10px; }
 
     /* Matéria modal */
     .materia-modal { width: 95vw; max-height: 90dvh; padding: 20px; }
@@ -1462,8 +1378,6 @@
   .dash-materia-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
   .dash-materia-pct { font-size: 12px; font-weight: 700; font-family: 'DM Mono', monospace; flex-shrink: 0; min-width: 36px; text-align: right; }
 
-  /* Abas professor removidas */
-
   /* ── Questionário ── */
   .quiz-opcao:hover { border-color: var(--accent); }
   .quiz-dissertacao:focus { outline: none; border-color: var(--accent); }
@@ -1497,6 +1411,40 @@
     .metric-val { font-size: 28px; }
     .topbar { padding: 10px 12px; }
     .content { padding: 12px 10px 80px; }
+  }
+  /* ── PWA iOS Toast ── */
+  .pwa-ios-toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    width: calc(100% - 40px);
+    max-width: 380px;
+    z-index: 9999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .pwa-ios-toast-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .pwa-ios-toast-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--accent);
   }
 </style>
 
@@ -1634,10 +1582,10 @@ function adicionarMensagemProfessorQuizConfig() {
     '<div class="msg-content">' +
       '<div class="msg-name">Professor IA</div>' +
       '<div class="msg-bubble" style="background:none;padding:0">' +
-        '<div style="font-size:14px;margin-bottom:12px;color:var(--cgpt-text)">Ótimo! Agora configure seu questionário:</div>' +
+        '<div style="font-size:14px;margin-bottom:12px;color:var(--text)">Ótimo! Agora configure seu questionário:</div>' +
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">' +
           '<div>' +
-            '<div style="font-size:11px;color:var(--cgpt-muted);margin-bottom:4px">QUESTÕES</div>' +
+            '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">QUESTÕES</div>' +
             '<select id="qc-qtd" class="form-input" style="font-size:13px;padding:6px 10px">' +
               '<option value="5">5</option>' +
               '<option value="10" selected>10</option>' +
@@ -1645,7 +1593,7 @@ function adicionarMensagemProfessorQuizConfig() {
             '</select>' +
           '</div>' +
           '<div>' +
-            '<div style="font-size:11px;color:var(--cgpt-muted);margin-bottom:4px">DIFICULDADE</div>' +
+            '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">DIFICULDADE</div>' +
             '<select id="qc-dif" class="form-input" style="font-size:13px;padding:6px 10px">' +
               '<option value="fácil">Fácil</option>' +
               '<option value="médio" selected>Médio</option>' +
@@ -1653,7 +1601,7 @@ function adicionarMensagemProfessorQuizConfig() {
             '</select>' +
           '</div>' +
           '<div>' +
-            '<div style="font-size:11px;color:var(--cgpt-muted);margin-bottom:4px">TIPO</div>' +
+            '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">TIPO</div>' +
             '<select id="qc-tipo" class="form-input" style="font-size:13px;padding:6px 10px">' +
               '<option value="misto">Misto</option>' +
               '<option value="multipla">Múltipla Escolha</option>' +
@@ -1744,7 +1692,7 @@ function renderQuizNoChat() {
     '<div class="prof-avatar">' + avatarSVG + '</div>' +
     '<div class="msg-content" style="width:100%">' +
       '<div class="msg-name">Professor IA</div>' +
-      '<div style="font-size:14px;color:var(--cgpt-text);margin-bottom:14px">Aqui está seu questionário! Responda todas as questões e clique em corrigir:</div>' +
+      '<div style="font-size:14px;color:var(--text);margin-bottom:14px">Aqui está seu questionário! Responda todas as questões e clique em corrigir:</div>' +
       perguntas +
       '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">' +
         '<button class="btn-primary" onclick="corrigirQuizChat()">✓ Corrigir Respostas</button>' +
@@ -1839,40 +1787,6 @@ async function corrigirQuizChat() {
 
 // ===================== QUESTIONÁRIO IA =====================
 let quizAtual = [];
-
-function trocarAbaProf(aba) {
-  document.getElementById('tab-chat').classList.toggle('active', aba === 'chat');
-  document.getElementById('tab-quiz').classList.toggle('active', aba === 'quiz');
-  document.getElementById('prof-painel-chat').style.display = aba === 'chat' ? 'flex' : 'none';
-  document.getElementById('prof-painel-quiz').style.display = aba === 'quiz' ? 'block' : 'none';
-  // Atualiza status do PDF
-  if (aba === 'quiz') atualizarQuizPDF();
-}
-
-function atualizarQuizPDF() {
-  const status = document.getElementById('quiz-pdf-status');
-  const cb = document.getElementById('quiz-usar-pdf');
-  if (pdfTexto) {
-    status.textContent = '(' + pdfNome + ')';
-    status.style.color = 'var(--accent)';
-    cb.disabled = false;
-  } else {
-    status.textContent = '(nenhum PDF carregado)';
-    status.style.color = 'var(--muted)';
-    cb.disabled = true;
-    cb.checked = false;
-  }
-}
-
-
-function selecionarOpcao(qi, oi) {
-  const q = quizAtual[qi];
-  const total = (q.opcoes || []).length;
-  for (let j = 0; j < total; j++) {
-    const el = document.getElementById('opcao-' + qi + '-' + j);
-    if (el) el.classList.toggle('selecionada', j === oi);
-  }
-}
 
 
 function renderizarPagina(pagina) {
@@ -2250,18 +2164,6 @@ function renderRotina() {
   }
 }
 
-function editarSlot(dia, hora) {
-  estado.slotEditando = { dia, hora };
-  document.getElementById('modal-slot-title').textContent = `${DIAS[dia]} às ${hora}`;
-  const sel = document.getElementById('slot-materia');
-  sel.innerHTML = `<option value="">Vazio</option>` + estado.materias.map(m =>
-    `<option value="${m.id}">${m.nome}</option>`).join('');
-  const chave = `${dia}-${hora}`;
-  const slot = estado.rotina[chave];
-  sel.value = slot?.materia || '';
-  document.getElementById('slot-obs').value = slot?.obs || '';
-  openModal('modal-slot');
-}
 
 function saveSlot() {
   const { dia, hora } = estado.slotEditando;
@@ -3190,7 +3092,7 @@ async function carregarPDF(evento) {
     // Badge de PDF no chat
     const group = document.createElement('div');
     group.className = 'msg-group aluno';
-    group.innerHTML = `<div class="pdf-badge"><span class="pdf-icon">📄</span> ${escapeHTML(pdfNome)} <span style="color:var(--cgpt-muted);font-size:11px">${pdf.numPages} páginas · ${Math.round(pdfTexto.length / 1000)}k chars</span></div>`;
+    group.innerHTML = `<div class="pdf-badge"><span class="pdf-icon">📄</span> ${escapeHTML(pdfNome)} <span style="color:var(--muted);font-size:11px">${pdf.numPages} páginas · ${Math.round(pdfTexto.length / 1000)}k chars</span></div>`;
     chat.appendChild(group);
     chat.scrollTop = chat.scrollHeight;
 
@@ -3285,6 +3187,11 @@ async function syncSupabase() {
     for (const [key, val] of Object.entries(estado.rotina)) {
       await sb.from('rotina').upsert({ id: uid + '-' + key, user_id: uid, slot_key: key, materia: val.materia, obs: val.obs });
     }
+    // Salvar pomodoro_log
+    for (const p of estado.pomodoroLog) {
+      if (!p.id) continue;
+      await sb.from('pomodoro_log').upsert({ id: p.id, user_id: uid, data: p.date, materia: p.materia || null, mins: p.mins, tarefa: p.tarefa || null });
+    }
   } catch(e) {
     console.error('Erro sync:', e);
   }
@@ -3328,7 +3235,7 @@ function salvarESync() {
   syncTimer = setTimeout(syncSupabase, 800); // debounce 800ms
 }
 
-const GROQ_KEY = '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';
+const GROQ_KEY = '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';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function chamarOllama(perguntaUsuario) {
@@ -4122,25 +4029,6 @@ function getMinsSemanaPorMateria(materiaId) {
 
 const _metasNotificadas = new Set();
 
-function verificarMetasSemana() {
-  if (!('Notification' in window)) return;
-  (estado.materias || []).forEach(m => {
-    const meta = m.meta || 5;
-    const mins = getMinsSemanaPorMateria(m.id);
-    const horas = mins / 60;
-    const key = `${m.id}-${getInicioSemana().toISOString().split('T')[0]}`;
-    if (horas >= meta && !_metasNotificadas.has(key)) {
-      _metasNotificadas.add(key);
-      toast(`🎯 Meta semanal de ${m.nome} batida! ${meta}h concluídas`, 'success', 5000);
-      if (Notification.permission === 'granted') {
-        new Notification('StudyOS — Meta batida! 🎯', {
-          body: `Você atingiu sua meta semanal de ${meta}h em ${m.nome}!`
-        });
-      }
-    }
-  });
-}
-
 
 // ===================== MODO FOCO =====================
 // Fonte de dados do timer ativo no foco
@@ -4218,19 +4106,6 @@ function getHistoricoAtividades() { try { return JSON.parse(localStorage.getItem
 function salvarHistoricoAtividades(h) { localStorage.setItem('studyos_historico_ativ', JSON.stringify(h)); }
 
 // Compatibilidade com funções antigas
-function getFlashcards() { return []; }
-function salvarFlashcards(c) {}
-function getQuestoes() { return []; }
-function salvarQuestoes(q) {}
-function deletarFlashcard(id) {}
-function fcExpandirTudo() {}
-function criarFlashcardManual() {}
-function getCardsDueHoje() { return []; }
-function atualizarBadgeRevisao() {
-  const badge = document.getElementById('fc-revisao-badge');
-  if (badge) badge.style.display = 'none';
-}
-function registrarRespostaCard() {}
 
 // ── Render principal ──
 function renderFlashcards() {
@@ -4526,7 +4401,7 @@ async function gerarQuestoesIA(notaId) {
   try {
     const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer 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' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer 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' },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         temperature: 0.5,
@@ -5119,7 +4994,6 @@ function renderConsistencia() {
 }
 
 
-
 // ===================== MODAL NOVIDADES =====================
 const STUDYOS_VERSION = '2.0.0-mar2026';
 
@@ -5331,21 +5205,6 @@ function atualizarStatusConexao() {
 window.addEventListener('online',  () => { atualizarStatusConexao(); toast('✓ Conexão restaurada', 'success'); });
 window.addEventListener('offline', () => { atualizarStatusConexao(); toast('⚡ Sem conexão — modo offline', 'info', 5000); });
 
-// Botão forçar atualização (usado na página Perfil)
-function forcarAtualizacaoSW() {
-  if (!('serviceWorker' in navigator)) { toast('Service Worker não suportado', 'error'); return; }
-  navigator.serviceWorker.getRegistration().then(reg => {
-    if (reg) {
-      reg.waiting?.postMessage('SKIP_WAITING');
-      reg.update().then(() => {
-        toast('Atualizando... recarregando em 2s', 'info', 3000);
-        setTimeout(() => window.location.reload(), 2000);
-      });
-    } else {
-      window.location.reload();
-    }
-  });
-}
 
 // Garantir que o DOM esteja pronto antes de iniciar
 if (document.readyState === 'loading') {
@@ -6018,7 +5877,7 @@ if (document.readyState === 'loading') {
 
 <div class="modal-overlay" id="modal-materia">
   <div class="modal">
-    <div class="modal-title">Nova Matéria</div>
+    <div class="modal-title" id="modal-materia-titulo">Nova Matéria</div>
     <div class="form-group">
       <label class="form-label">Nome</label>
       <input type="text" class="form-input" id="m-nome" placeholder="ex: Matemática">
@@ -6152,7 +6011,6 @@ if (document.readyState === 'loading') {
       <button class="foco-btn" id="foco-skip-btn" onclick="eval(_focoSource.skipFn);atualizarFocoDisplay()">pular →</button>
     </div>
   </div>
-
 
 
   <!-- MODAL NOVIDADES -->
