@@ -1648,9 +1648,9 @@ async function confirmarGerarQuizChat() {
   mostrarDigitando();
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch(GROQ_PROXY, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 4096 })
     });
     const dados = await res.json();
@@ -1753,9 +1753,9 @@ async function corrigirQuizChat() {
       if (!resposta) { fb.className = 'quiz-feedback incorreto'; fb.textContent = '⚠ Não respondida.'; continue; }
       fb.className = 'quiz-feedback parcial'; fb.textContent = '⏳ Corrigindo...';
       try {
-        var res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        var res = await fetch(GROQ_PROXY, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ model: GROQ_MODEL, temperature: 0.3, max_tokens: 200,
             messages: [{ role: 'user', content: 'Pergunta: ' + q.enunciado + '\nResposta esperada: ' + q.resposta + '\nResposta do aluno: ' + resposta + '\n\nAvalie em uma linha se está correta, parcialmente correta ou incorreta. Seja direto.' }] })
         });
@@ -2549,7 +2549,7 @@ function flowPausa() {
   clearInterval(flowInterval); flowRodando = false;
   const mins = Math.round(flowSegundos / 60);
   const matId = document.getElementById('flow-materia-sel').value;
-  if (mins > 0) { estado.pomodoroLog.push({ date: hojeStr(), materia: matId, mins }); salvar(); }
+  if (mins > 0) { estado.pomodoroLog.push({ id: (sbUser ? sbUser.id : 'local') + '-' + Date.now(), date: hojeStr(), materia: matId, mins }); salvar(); salvarESync(); }
   tocarAlarme('foco'); notificarTimer('StudyOS ⏱', 'Sessão de foco concluída! Hora de descansar.');
   const sugestao = mins <= 25 ? 5 : mins <= 50 ? 8 : mins <= 90 ? 15 : 20;
   document.getElementById('flow-mode-label').textContent = 'PAUSA — ' + sugestao + 'min sugeridos';
@@ -2610,7 +2610,7 @@ function etProximaFase() {
   tocarAlarme(etFase);
   const matId = document.getElementById('et-materia-sel').value;
   if (etFase === 'foco') {
-    estado.pomodoroLog.push({ date: hojeStr(), materia: matId, mins: 52 }); salvar();
+    estado.pomodoroLog.push({ id: (sbUser ? sbUser.id : 'local') + '-' + Date.now(), date: hojeStr(), materia: matId, mins: 52 }); salvar(); salvarESync();
     etFase = 'pausa'; etSeg = 17*60;
     document.getElementById('et-mode-label').textContent = 'PAUSA';
     etSessoes++;
@@ -2680,7 +2680,7 @@ function tbFim() {
   const dur = parseInt(document.getElementById('tb-duracao').value) || 30;
   const matId = document.getElementById('tb-materia-sel').value;
   const tarefa = document.getElementById('tb-tarefa-input').value.trim();
-  estado.pomodoroLog.push({ date: hojeStr(), materia: matId, mins: dur, tarefa }); salvar();
+  estado.pomodoroLog.push({ id: (sbUser ? sbUser.id : 'local') + '-' + Date.now(), date: hojeStr(), materia: matId, mins: dur, tarefa }); salvar(); salvarESync();
   document.getElementById('tb-btn').textContent = '▶ Novo Bloco';
   document.getElementById('tb-tarefa-label').textContent = '✓ Bloco concluído!';
   tbSeg = dur * 60;
@@ -2741,7 +2741,7 @@ function contRegistrar() {
   const mins = Math.round(contSeg / 60);
   if (mins < 1) { alert('Sessão muito curta para registrar.'); return; }
   const matId = document.getElementById('cont-materia-sel').value;
-  estado.pomodoroLog.push({ date: hojeStr(), materia: matId, mins }); salvar();
+  estado.pomodoroLog.push({ id: (sbUser ? sbUser.id : 'local') + '-' + Date.now(), date: hojeStr(), materia: matId, mins }); salvar(); salvarESync();
   contSeg = 0;
   document.getElementById('cont-btn').textContent = '▶ Iniciar';
   atualizarDisplayCont();
@@ -2812,7 +2812,7 @@ function timerProximaFase() {
   const matId = document.getElementById('timer-materia-sel').value;
   if (timerFase === 'foco') {
     const mins = timerFaseInicialMins - Math.round(timerSegundosRestantes / 60);
-    if (mins > 0) { estado.pomodoroLog.push({ date: hojeStr(), materia: matId, mins }); salvar(); }
+    if (mins > 0) { estado.pomodoroLog.push({ id: (sbUser ? sbUser.id : 'local') + '-' + Date.now(), date: hojeStr(), materia: matId, mins }); salvar(); salvarESync(); }
     timerSessoes++;
     if (timerSessoes % timerTotalSessoes === 0) {
       timerFase = 'longa'; timerSegundosRestantes = d.longa * 60; timerFaseInicialMins = d.longa;
@@ -3189,7 +3189,7 @@ async function syncSupabase() {
     }
     // Salvar pomodoro_log
     for (const p of estado.pomodoroLog) {
-      if (!p.id) continue;
+      if (!p.id) p.id = uid + '-' + Date.now() + '-' + Math.random().toString(36).slice(2);
       await sb.from('pomodoro_log').upsert({ id: p.id, user_id: uid, data: p.date, materia: p.materia || null, mins: p.mins, tarefa: p.tarefa || null });
     }
   } catch(e) {
@@ -3219,7 +3219,7 @@ async function carregarSupabase() {
     if (rot.data?.length) {
       for (const r of rot.data) estado.rotina[r.slot_key] = { materia: r.materia, obs: r.obs };
     }
-    estado.pomodoroLog = pom.data?.length ? pom.data.map(p => ({ date: p.data, materia: p.materia, mins: p.mins })) : [];
+    estado.pomodoroLog = pom.data?.length ? pom.data.map(p => ({ id: p.id, date: p.data, materia: p.materia, mins: p.mins, tarefa: p.tarefa || null })) : [];
 
     salvar();
   } catch(e) {
@@ -3235,7 +3235,7 @@ function salvarESync() {
   syncTimer = setTimeout(syncSupabase, 800); // debounce 800ms
 }
 
-const GROQ_KEY = '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';
+const GROQ_PROXY = '/api/groq'; // chave guardada no servidor Vercel
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function chamarOllama(perguntaUsuario) {
@@ -3249,11 +3249,10 @@ async function chamarOllama(perguntaUsuario) {
   });
   messages.push({ role: 'user', content: perguntaUsuario });
 
-  const resposta = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const resposta = await fetch(GROQ_PROXY, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + GROQ_KEY,
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
@@ -4399,9 +4398,9 @@ async function gerarQuestoesIA(notaId) {
 
   toast('Gerando atividade com IA...', 'info', 14000);
   try {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const resp = await fetch(GROQ_PROXY, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer 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' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         temperature: 0.5,
