@@ -534,56 +534,103 @@ function validate() {
   return ok;
 }
 
-// ── Supabase ──
+// =====================================================================
+// CONFIGURAÇÃO SUPABASE — StudyOS Login
+// A chave "anon" é pública por design (protegida pelas RLS policies).
+// =====================================================================
 const SUPABASE_URL = 'https://zafhdlehaukexusnpojm.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphZmhkbGVoYXVrZXh1c25wb2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjI4ODIsImV4cCI6MjA4ODgzODg4Mn0.aH0WrJKnyrngcFDUugcYNLGksk8Iu9Cs5smvX2Vv_ag';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Se já tem sessão ativa, redireciona direto
+// Se o usuário já tem sessão ativa (ex: voltou após fechar a aba),
+// redireciona direto para o app sem precisar logar de novo.
 sb.auth.getSession().then(({ data: { session } }) => {
   if (session) window.location.href = 'studyos.html';
 });
 
+// =====================================================================
+// handleSubmit — Processa login, cadastro e recuperação de senha.
+// Chamado pelo botão principal do formulário.
+// =====================================================================
 async function handleSubmit() {
   clearMsg();
+  // Valida campos antes de qualquer requisição
   if (!validate()) return;
 
+  // Bloqueia o botão para evitar cliques duplos
   const btn = document.getElementById('submit-btn');
   const btnText = document.getElementById('btn-text');
   btn.disabled = true;
   btnText.innerHTML = `<div class="spinner"></div> Aguarde...`;
 
-  const email = document.getElementById('inp-email')?.value || '';
+  const email    = document.getElementById('inp-email')?.value    || '';
   const password = document.getElementById('inp-password')?.value || '';
-  const name = document.getElementById('inp-name')?.value || '';
+  const name     = document.getElementById('inp-name')?.value     || '';
 
   try {
+
+    // ── LOGIN ──────────────────────────────────────────────────────
     if (mode === 'login') {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      // Autentica com email + senha via Supabase Auth
+      const { data: authData, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
+
+      // Após login bem-sucedido, busca o role do usuário na tabela `profiles`
+      // (criada pela migração de hierarquia: super_admin > educador > aluno)
+      try {
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('role, nome')
+          .eq('id', authData.user.id)
+          .single();
+
+        // Salva role + nome no sessionStorage para acesso rápido no app.
+        // sessionStorage é limpo automaticamente ao fechar o browser,
+        // sendo mais seguro que localStorage para dados de sessão.
+        if (profile) {
+          sessionStorage.setItem('studyos_user', JSON.stringify({
+            id:   authData.user.id,
+            role: profile.role || 'aluno',
+            nome: profile.nome || email.split('@')[0],
+          }));
+        }
+      } catch (profileErr) {
+        // Não impede o login caso o perfil ainda não exista
+        // (ex: email recém-confirmado, trigger ainda não executou)
+        console.warn('[login] Perfil não encontrado ainda:', profileErr.message);
+      }
+
       showMsg('Bem-vindo de volta! 🎉 Redirecionando...', 'success');
       setTimeout(() => window.location.href = 'studyos.html', 1000);
 
+    // ── CADASTRO ───────────────────────────────────────────────────
     } else if (mode === 'register') {
+      // Cria conta no Supabase Auth.
+      // O trigger `handle_new_user` criará automaticamente o registro
+      // na tabela `profiles` com role = 'aluno' (padrão).
       const { error } = await sb.auth.signUp({
         email, password,
-        options: { data: { nome: name } }
+        options: { data: { nome: name } } // nome salvo no metadata do usuário
       });
       if (error) throw error;
       showMsg('Conta criada! Verifique seu email para confirmar. 🎉', 'success');
 
+    // ── RECUPERAÇÃO DE SENHA ───────────────────────────────────────
     } else if (mode === 'forgot') {
+      // Envia email com link de redefinição de senha
       const { error } = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/studyos.html'
       });
       if (error) throw error;
       showMsg(`Link enviado para <strong>${email}</strong>. Verifique sua caixa de entrada.`, 'success');
     }
+
   } catch (err) {
+    // Mapeia erros técnicos do Supabase para mensagens amigáveis em PT-BR
     const msgs = {
-      'Invalid login credentials': 'Email ou senha incorretos.',
-      'Email not confirmed': 'Confirme seu email antes de entrar.',
-      'User already registered': 'Este email já está cadastrado.',
+      'Invalid login credentials':              'Email ou senha incorretos.',
+      'Email not confirmed':                    'Confirme seu email antes de entrar.',
+      'User already registered':                'Este email já está cadastrado.',
       'Password should be at least 6 characters': 'Senha muito curta.',
     };
     showMsg(msgs[err.message] || err.message, 'error');

@@ -1469,11 +1469,21 @@ let estado = {
 
 function carregar() {
   const salvo = localStorage.getItem('studyos_v2');
-  if (salvo) estado = { ...estado, ...JSON.parse(salvo) };
+  if (salvo) {
+    try {
+      estado = { ...estado, ...JSON.parse(salvo) };
+    } catch(e) {
+      console.error('Erro ao carregar estado salvo:', e);
+      // Continue com estado vazio
+    }
+  }
 }
 function salvar() { localStorage.setItem('studyos_v2', JSON.stringify(estado)); }
 
 // ===================== NAVEGAÇÃO =====================
+let _pageElements = null;
+let _navButtons = null;
+
 const titulosPaginas = {
   dashboard: 'Dashboard',
   rotina: 'Rotina Semanal',
@@ -1510,7 +1520,8 @@ function goTo(pagina) {
     content.style.overflow = '';
   }
 
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (!_pageElements) _pageElements = document.querySelectorAll('.page');
+  _pageElements.forEach(p => p.classList.remove('active'));
   const pageEl = document.getElementById('page-' + pagina);
   if (pageEl) {
     pageEl.classList.add('active');
@@ -1519,7 +1530,8 @@ function goTo(pagina) {
     pageEl.classList.add('page-enter');
   }
 
-  document.querySelectorAll('.nav-btn').forEach(b => {
+  if (!_navButtons) _navButtons = document.querySelectorAll('.nav-btn');
+  _navButtons.forEach(b => {
     const oc = b ? b.getAttribute('onclick') : null; if (oc) b.classList.toggle('active', oc === `goTo('${pagina}')`);
   });
 
@@ -1790,22 +1802,41 @@ let quizAtual = [];
 
 
 function renderizarPagina(pagina) {
-  if (pagina === 'dashboard') renderDashboard();
-  verificarAtrasadas();
-  if (pagina === 'rotina') renderRotina();
-  if (pagina === 'relatorio') renderRelatorio();
-  if (pagina === 'calendario') renderCalendario();
-  if (pagina === 'perfil') renderPerfil();
-  if (pagina === 'materias') renderMaterias();
-  if (pagina === 'flashcards') renderFlashcards();
-  if (pagina === 'consistencia') renderConsistencia();
-  if (pagina === 'notas') renderNotas();
-  if (pagina === 'tarefas') renderTarefas();
-  if (pagina === 'timer') renderTimer();
-  if (pagina === 'flowtime') { popularSelecoesMaterias(); renderHistoricoFlow(); }
-  if (pagina === '5217') { popularSelecoesMaterias(); renderHistoricoET(); }
-  if (pagina === 'timebox') { popularSelecoesMaterias(); renderHistoricoTB(); }
-  if (pagina === 'continuo') { popularSelecoesMaterias(); renderHistoricoCont(); }
+  // Limpar timers ao navegar
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  if (flowInterval) { clearInterval(flowInterval); flowInterval = null; }
+  if (etInterval) { clearInterval(etInterval); etInterval = null; }
+  if (tbInterval) { clearInterval(tbInterval); tbInterval = null; }
+  if (contInterval) { clearInterval(contInterval); contInterval = null; }
+
+  const renderMap = {
+    'dashboard': renderDashboard,
+    'rotina': renderRotina,
+    'relatorio': renderRelatorio,
+    'calendario': renderCalendario,
+    'perfil': renderPerfil,
+    'materias': renderMaterias,
+    'flashcards': renderFlashcards,
+    'consistencia': renderConsistencia,
+    'notas': renderNotas,
+    'tarefas': renderTarefas,
+    'timer': renderTimer,
+  };
+
+  const renderWithSetup = {
+    'flowtime': () => { popularSelecoesMaterias(); renderHistoricoFlow(); },
+    '5217': () => { popularSelecoesMaterias(); renderHistoricoET(); },
+    'timebox': () => { popularSelecoesMaterias(); renderHistoricoTB(); },
+    'continuo': () => { popularSelecoesMaterias(); renderHistoricoCont(); }
+  };
+
+  const renderFn = renderMap[pagina];
+  if (renderFn) renderFn();
+
+  const renderFnWithSetup = renderWithSetup[pagina];
+  if (renderFnWithSetup) renderFnWithSetup();
+
+  if (pagina === 'dashboard') verificarAtrasadas();
   renderSidebar();
 }
 
@@ -1856,7 +1887,7 @@ function renderDashboard() {
     : recentes.map(n => `
       <div class="task-item" onclick="abrirNota('${n.id}')">
         <div>
-          <div class="task-name">${n.title || 'Sem título'}</div>
+          <div class="task-name">${escapeHTML(n.title || 'Sem título')}</div>
           <div class="task-meta">${getNomeMateria(n.materia)} · ${formatarData(n.updated)}</div>
         </div>
       </div>`).join('');
@@ -1879,7 +1910,7 @@ function renderDashboard() {
           return `<div class="dash-materia-item" onclick="abrirDetalheMateria('${m.id}')">
             <div class="dash-materia-cor" style="background:${CORES[m.cor]}"></div>
             <div class="dash-materia-info">
-              <div class="dash-materia-nome">${m.nome}${metaBatida ? ' 🎯' : ''}</div>
+              <div class="dash-materia-nome">${escapeHTML(m.nome)}${metaBatida ? ' 🎯' : ''}</div>
               <div class="dash-materia-meta">${formatHM(minsSemana)} esta semana · meta ${meta}h</div>
               <div class="dash-materia-progress">
                 <div class="dash-materia-fill" style="width:${pct}%;background:${corBarra};transition:width 0.5s"></div>
@@ -1947,9 +1978,9 @@ function htmlTarefa(t) {
   return `<div class="task-item ${t.done ? 'done' : ''}" onclick="toggleTarefa('${t.id}')">
     <div class="task-check"></div>
     <div>
-      <div class="task-name">${t.desc}</div>
+      <div class="task-name">${escapeHTML(t.desc)}</div>
       <div class="task-meta">
-        ${m ? `<span class="materia-tag c${m.cor}">${m.nome}</span>` : ''}
+        ${m ? `<span class="materia-tag c${m.cor}">${escapeHTML(m.nome)}</span>` : ''}
         ${t.prior === 'alta' ? '🔴' : t.prior === 'baixa' ? '🔵' : ''}
         ${t.data}
       </div>
@@ -2115,7 +2146,7 @@ function renderRotina() {
   }
 
   const legendaHTML = estado.materias.length
-    ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">${estado.materias.map(m=>`<span class="materia-tag c${m.cor}">${m.nome}</span>`).join('')}</div>`
+    ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">${estado.materias.map(m=>`<span class="materia-tag c${m.cor}">${escapeHTML(m.nome)}</span>`).join('')}</div>`
     : '';
 
   elPage.innerHTML = `
@@ -2190,7 +2221,7 @@ function renderMaterias() {
     const pct = Math.min(100, Math.round((horas / (m.meta || 5)) * 100));
     return `<div class="materia-card" onclick="abrirDetalheMateria('${m.id}')">
       <div class="materia-card-accent" style="background:${CORES[m.cor]}"></div>
-      <div class="materia-name" style="color:${CORES[m.cor]}">${m.nome}</div>
+      <div class="materia-name" style="color:${CORES[m.cor]}">${escapeHTML(m.nome)}</div>
       <div class="materia-stats">
         <div class="materia-stat"><strong>${notas}</strong> notas</div>
         <div class="materia-stat"><strong>${tasks}</strong> tarefas</div>
@@ -2237,7 +2268,7 @@ function abrirDetalheMateria(id) {
       const data = new Date(n.updated).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
       const preview = (n.body || '').replace(/<[^>]+>/g, '').substring(0, 80);
       return '<div class="materia-modal-nota" onclick="fecharDetalheMateria(null);abrirNota(\'' + n.id + '\')">' +
-        '<div class="materia-modal-nota-title">' + (n.title || 'Sem título') + '</div>' +
+        '<div class="materia-modal-nota-title">' + escapeHTML(n.title || 'Sem título') + '</div>' +
         (preview ? '<div class="materia-modal-nota-preview">' + preview + '</div>' : '') +
         '<div class="materia-modal-nota-date">' + data + '</div>' +
         '</div>';
@@ -2283,6 +2314,7 @@ As notas e tarefas vinculadas não serão excluídas, apenas desvinculadas.`)) r
 
 // ===================== ANOTAÇÕES =====================
 let timeoutNota;
+let _searchDebounce;
 function renderNotas() {
   renderListaNotas();
   popularSelecoesMaterias();
@@ -2300,7 +2332,7 @@ function renderListaNotas() {
   }
   el.innerHTML = notas.map(n => `
     <div class="note-item ${n.id === estado.notaAtualId ? 'active' : ''}" onclick="abrirNota('${n.id}')">
-      <div class="note-item-title">${n.title || 'Sem título'}</div>
+      <div class="note-item-title">${escapeHTML(n.title || 'Sem título')}</div>
       <div class="note-item-preview">${removerHTML(n.body).substring(0,60) || '...'}</div>
       <div class="note-item-date">${getNomeMateria(n.materia)} · ${formatarData(n.updated)}</div>
     </div>`).join('');
@@ -2467,7 +2499,7 @@ function selectColor(c) {
 
 function popularSelecoesMaterias() {
   const opts = `<option value="">Sem matéria</option>` + estado.materias.map(m =>
-    `<option value="${m.id}">${m.nome}</option>`).join('');
+    `<option value="${m.id}">${escapeHTML(m.nome)}</option>`).join('');
   ['t-materia','note-materia','timer-materia-sel','slot-materia','flow-materia-sel','et-materia-sel','tb-materia-sel','cont-materia-sel'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = opts;
@@ -2888,8 +2920,10 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
+let _navMobileBtns = null;
 function atualizarNavMobile(pagina) {
-  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  if (!_navMobileBtns) _navMobileBtns = document.querySelectorAll('.mobile-nav-btn');
+  _navMobileBtns.forEach(b => b.classList.remove('active'));
   // Métodos de estudo mapeiam para o botão timer na nav mobile
   const mapa = { flowtime: 'timer', '5217': 'timer', timebox: 'timer', continuo: 'timer' };
   const id = mapa[pagina] || pagina;
@@ -3128,22 +3162,50 @@ function atualizarBotaoEnvio() {
 
 
 // --- Chamada ao Ollama com histórico ---
-// ===================== SUPABASE =====================
+// =====================================================================
+// CONFIGURAÇÃO SUPABASE — StudyOS App
+// A chave "anon" é pública por design (protegida pelas RLS policies).
+// =====================================================================
 const SUPABASE_URL = 'https://zafhdlehaukexusnpojm.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphZmhkbGVoYXVrZXh1c25wb2ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNjI4ODIsImV4cCI6MjA4ODgzODg4Mn0.aH0WrJKnyrngcFDUugcYNLGksk8Iu9Cs5smvX2Vv_ag';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Usuário autenticado (preenchido em verificarSessao)
 let sbUser = null;
 
-// Verificar sessão — se não logado, redireciona para login
+// Role do usuário logado — valores: 'super_admin' | 'educador' | 'aluno'
+// Padrão 'aluno' por segurança (menor privilégio)
+let sbUserRole = 'aluno';
+
+// Mapa de níveis para comparação de hierarquia
+// (maior número = mais permissão)
+const ROLE_LEVEL = { aluno: 1, educador: 2, super_admin: 3 };
+
+// =====================================================================
+// verificarSessao — Verifica autenticação e carrega dados do perfil.
+// Chamada no início do app (DOMContentLoaded).
+// =====================================================================
 async function verificarSessao() {
-  const { data: { session } } = await sb.auth.getSession();
+  // Busca sessão ativa no Supabase Auth
+  let session = null;
+  try {
+    const { data: { session: sess } } = await sb.auth.getSession();
+    session = sess;
+  } catch(err) {
+    console.error('Session check failed:', err);
+    // Don't redirect, just continue - user might be offline
+  }
+
+  // Sem sessão → redireciona para a tela de login
   if (!session) {
     window.location.href = 'index.html';
     return false;
   }
   sbUser = session.user;
 
-  // Detectar troca de usuário — limpar localStorage se for outra conta
+  // ── Detectar troca de usuário ──────────────────────────────────
+  // Se o UID salvo for diferente do atual, limpa os dados do
+  // usuário anterior para evitar dados cruzados entre contas.
   const uidSalvo = localStorage.getItem('studyos_uid');
   if (uidSalvo && uidSalvo !== sbUser.id) {
     localStorage.removeItem('studyos_v2');
@@ -3151,43 +3213,118 @@ async function verificarSessao() {
   }
   localStorage.setItem('studyos_uid', sbUser.id);
 
-  // Mostrar nome do usuário na sidebar
+  // ── Carregar role do perfil ────────────────────────────────────
+  // Tenta primeiro o sessionStorage (preenchido no login — mais rápido).
+  // Se não encontrar, busca diretamente do Supabase como fallback.
+  const cachedUser = sessionStorage.getItem('studyos_user');
+  if (cachedUser) {
+    try {
+      const parsed = JSON.parse(cachedUser);
+      // Garante que o cache pertence ao usuário atual
+      if (parsed.id === sbUser.id) {
+        sbUserRole = parsed.role || 'aluno';
+      }
+    } catch (_) { /* JSON inválido — ignora e usa padrão */ }
+  } else {
+    // Fallback: busca perfil diretamente da tabela `profiles`
+    // (ex: primeira visita após confirmar email sem ter passado pelo login)
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('role, nome')
+      .eq('id', sbUser.id)
+      .single();
+
+    if (profile) {
+      sbUserRole = profile.role || 'aluno';
+      // Salva no sessionStorage para requisições futuras nesta sessão
+      sessionStorage.setItem('studyos_user', JSON.stringify({
+        id:   sbUser.id,
+        role: sbUserRole,
+        nome: profile.nome,
+      }));
+    }
+  }
+
+  // ── Exibir badge de role na sidebar ──────────────────────────
+  // Mostra o nível do usuário abaixo do nome (apenas para educador+)
+  const roleBadgeEl = document.getElementById('sb-user-role');
+  if (roleBadgeEl) {
+    const roleLabels = {
+      super_admin: '★ Super Admin',
+      educador:    '◈ Educador',
+    };
+    if (roleLabels[sbUserRole]) {
+      roleBadgeEl.textContent = roleLabels[sbUserRole];
+      roleBadgeEl.style.display = '';
+    }
+  }
+
+  // ── Mostrar link de Admin na sidebar ──────────────────────────
+  // Visível apenas para educador (nível 2) e super_admin (nível 3)
+  if ((ROLE_LEVEL[sbUserRole] ?? 1) >= 2) {
+    const navAdminSection = document.getElementById('nav-admin-section');
+    const navAdminBtn     = document.getElementById('nav-admin-btn');
+    if (navAdminSection) navAdminSection.style.display = '';
+    if (navAdminBtn)     navAdminBtn.style.display = '';
+  }
+
+  // ── Mostrar nome do usuário na sidebar ─────────────────────
   const meta = sbUser.user_metadata;
   const nome = meta?.nome || sbUser.email.split('@')[0];
   const el = document.getElementById('sb-user-nome');
   if (el) el.textContent = nome;
+
   return true;
 }
 
-// Logout
+// =====================================================================
+// logout — Encerra a sessão do usuário e limpa dados de cache.
+// =====================================================================
 async function logout() {
+  // Remove dados de sessão do browser antes de sair
+  sessionStorage.removeItem('studyos_user');
+  // Limpar timers e intervalos
+  if (window._syncInterval) { clearInterval(window._syncInterval); window._syncInterval = null; }
+  if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  if (flowInterval) { clearInterval(flowInterval); flowInterval = null; }
+  if (etInterval) { clearInterval(etInterval); etInterval = null; }
+  if (tbInterval) { clearInterval(tbInterval); tbInterval = null; }
+  if (contInterval) { clearInterval(contInterval); contInterval = null; }
   await sb.auth.signOut();
   window.location.href = 'index.html';
 }
 
-// ── SYNC SUPABASE ──
+// =====================================================================
+// syncSupabase — Persiste o estado local (localStorage) no Supabase.
+// Chamada após qualquer alteração de dados (salvar, deletar, etc.).
+// Usa upsert para criar ou atualizar sem duplicar registros.
+// As RLS policies garantem que cada usuário acessa apenas seus dados.
+// =====================================================================
 async function syncSupabase() {
-  if (!sbUser) return;
+  if (!sbUser) return; // Ignora se não há usuário logado
   try {
     const uid = sbUser.id;
 
-    // Salvar matérias
+    // Sincroniza matérias (disciplinas do usuário)
     for (const m of estado.materias) {
       await sb.from('materias').upsert({ id: m.id, user_id: uid, nome: m.nome, cor: m.cor, meta: m.meta });
     }
-    // Salvar tarefas
+    // Sincroniza tarefas
     for (const t of estado.tarefas) {
       await sb.from('tarefas').upsert({ id: t.id, user_id: uid, descricao: t.desc, materia: t.materia, data: t.data, hora: t.hora, prior: t.prior, done: t.done });
     }
-    // Salvar notas
+    // Sincroniza anotações
     for (const n of estado.notas) {
       await sb.from('notas').upsert({ id: n.id, user_id: uid, title: n.title, body: n.body, materia: n.materia, updated: n.updated });
     }
-    // Salvar rotina
+    // Sincroniza slots da rotina semanal
+    // Chave composta uid+slot para garantir unicidade por usuário
     for (const [key, val] of Object.entries(estado.rotina)) {
       await sb.from('rotina').upsert({ id: uid + '-' + key, user_id: uid, slot_key: key, materia: val.materia, obs: val.obs });
     }
-    // Salvar pomodoro_log
+    // Sincroniza log de sessões Pomodoro
+    // Gera ID único para novos registros sem ID
     for (const p of estado.pomodoroLog) {
       if (!p.id) p.id = uid + '-' + Date.now() + '-' + Math.random().toString(36).slice(2);
       await sb.from('pomodoro_log').upsert({ id: p.id, user_id: uid, data: p.date, materia: p.materia || null, mins: p.mins, tarefa: p.tarefa || null });
@@ -3197,9 +3334,13 @@ async function syncSupabase() {
   }
 }
 
-// Carregar dados do Supabase
+// =====================================================================
+// carregarSupabase — Carrega os dados do usuário do banco de dados.
+// Chamada na inicialização e pelos listeners de realtime.
+// Popula o estado local (estado.*) que alimenta toda a UI.
+// =====================================================================
 async function carregarSupabase() {
-  if (!sbUser) return;
+  if (!sbUser) return; // Ignora se não há usuário logado
   try {
     const uid = sbUser.id;
     const [mat, tar, not, rot, pom] = await Promise.all([
@@ -3224,6 +3365,7 @@ async function carregarSupabase() {
     salvar();
   } catch(e) {
     console.error('Erro ao carregar do Supabase:', e);
+    toast('Erro ao carregar dados. Verifique sua conexão.', 'error', 4000);
   }
 }
 
@@ -3264,7 +3406,13 @@ async function chamarOllama(perguntaUsuario) {
 
   if (!resposta.ok) {
     const err = await resposta.text();
-    throw new Error('Groq erro ' + resposta.status + ': ' + err.substring(0, 200));
+    let userMsg = 'Erro ao conectar com o Professor IA.';
+    if (resposta.status === 429) {
+      userMsg = 'Muitas requisições. Aguarde um momento.';
+    } else if (resposta.status === 503) {
+      userMsg = 'Serviço temporariamente indisponível.';
+    }
+    throw new Error(userMsg + ' (status: ' + resposta.status + ')');
   }
 
   const dados = await resposta.json();
@@ -3301,6 +3449,7 @@ async function askProfessor() {
     removerDigitando();
     adicionarMensagemProfessor(resposta);
     historicoChat.push({ role: 'assistant', content: resposta });
+    if (historicoChat.length > 40) historicoChat = historicoChat.slice(-40);
   } catch (erroOllama) {
     console.error('Erro ao chamar IA:', erroOllama);
     removerDigitando();
@@ -3515,7 +3664,7 @@ function renderRelatorio() {
       const pct = Math.round((mins/maxMins)*100);
       return `<div class="rel-mat-item">
         <div class="rel-mat-row">
-          <span class="rel-mat-nome"><span class="materia-tag c${m.cor}" style="font-size:10px;padding:1px 6px">${m.nome}</span></span>
+          <span class="rel-mat-nome"><span class="materia-tag c${m.cor}" style="font-size:10px;padding:1px 6px">${escapeHTML(m.nome)}</span></span>
           <span class="rel-mat-hrs">${formatHM(mins)}</span>
         </div>
         <div class="rel-mat-bar-bg"><div class="rel-mat-bar-fill" style="width:${pct}%;background:${CORES[m.cor]}"></div></div>
@@ -3669,7 +3818,7 @@ function verificarAtrasadas() {
   const itens = atrasadas.slice(0, 5).map(t => {
     const diasAtraso = Math.round((new Date(hoje) - new Date(t.data)) / 86400000);
     const label = diasAtraso === 1 ? '1 dia' : diasAtraso + ' dias';
-    return `<span class="alerta-tag" onclick="goTo('tarefas')" title="${t.desc} — ${label} atraso">${t.desc.substring(0,22)}${t.desc.length > 22 ? '…' : ''} <span style="opacity:0.7">(${label})</span></span>`;
+    return `<span class="alerta-tag" onclick="goTo('tarefas')" title="${escapeHTML(t.desc)} — ${label} atraso">${escapeHTML(t.desc.substring(0,22))}${t.desc.length > 22 ? '…' : ''} <span style="opacity:0.7">(${label})</span></span>`;
   }).join('');
 
   const extra = total > 5 ? `<span style="font-size:11px;color:var(--danger);opacity:0.7">+${total - 5} mais</span>` : '';
@@ -3704,6 +3853,9 @@ function iniciarRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas', filter: `user_id=eq.${uid}` }, (payload) => carregarEAtualizar(payload))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notas', filter: `user_id=eq.${uid}` }, (payload) => carregarEAtualizar(payload))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rotina', filter: `user_id=eq.${uid}` }, (payload) => carregarEAtualizar(payload))
+    .on('error', (err) => {
+      console.error('Realtime subscription error:', err);
+    })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') console.log('✅ Realtime conectado');
     });
@@ -3975,7 +4127,7 @@ function renderCalendario() {
             <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
               <span style="width:8px;height:8px;border-radius:50%;background:${t.done?'#51cf66':'#ffd43b'};flex-shrink:0"></span>
               <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">${t.data.split('-').reverse().join('/')}</span>
-              <span style="font-size:12px;color:var(--text);${t.done?'text-decoration:line-through;opacity:0.5':''}">${t.descricao||t.desc||''}</span>
+              <span style="font-size:12px;color:var(--text);${t.done?'text-decoration:line-through;opacity:0.5':''}">${escapeHTML(t.descricao||t.desc||'')}</span>
             </div>`).join('')}
         ` : (!feriadosDoMes.length ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Nenhum evento neste mês</div>' : '')}
       </div>`;
@@ -4597,6 +4749,9 @@ async function exportarRelatorioPDF() {
 // Intervalos em dias por nível (0=novo, 1=1d, 2=3d, 3=7d, 4=14d, 5=30d, 6=60d)
 const INTERVALOS_REVISAO = [0, 1, 3, 7, 14, 30, 60];
 
+function getFlashcards() { try { return JSON.parse(localStorage.getItem('studyos_flashcards')||'[]'); } catch(e) { return []; } }
+function salvarFlashcards(cards) { localStorage.setItem('studyos_flashcards', JSON.stringify(cards)); }
+
 function getCardsDueHoje() {
   const hoje = hojeStr();
   return getFlashcards().filter(c => {
@@ -5023,7 +5178,12 @@ let _customBg = '#0d0f0e';
 
 function abrirModalCustom() {
   // Carregar valores salvos
-  const saved = JSON.parse(localStorage.getItem('studyos_custom_tema') || '{}');
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem('studyos_custom_tema') || '{}');
+  } catch(e) {
+    console.error('Erro ao carregar tema customizado:', e);
+  }
   _customAccent = saved.accent || '#4d9fff';
   _customBg     = saved.bg || '#0d0f0e';
 
@@ -5148,7 +5308,12 @@ async function initApp() {
   carregar();
   const temaSalvo = localStorage.getItem('studyos_theme') || 'escuro';
   if (temaSalvo === 'custom') {
-    const savedCustom = JSON.parse(localStorage.getItem('studyos_custom_tema') || '{}');
+    let savedCustom = {};
+    try {
+      savedCustom = JSON.parse(localStorage.getItem('studyos_custom_tema') || '{}');
+    } catch(e) {
+      console.error('Erro ao carregar tema customizado na inicialização:', e);
+    }
     if (savedCustom.accent) _aplicarVariaveisCustom(savedCustom.accent, savedCustom.bg || '#0d0f0e');
   }
   setTheme(temaSalvo);
@@ -5162,7 +5327,7 @@ async function initApp() {
   if (!localStorage.getItem('studyos_onboarding_done')) setTimeout(abrirOnboarding, 600);
   verificarNovidades();
   // Sync periódico
-  setInterval(syncSupabase, 10000);
+  window._syncInterval = setInterval(syncSupabase, 10000);
   iniciarRealtime();
   // Pedir permissão de notificação
   if ('Notification' in window && Notification.permission === 'default') {
@@ -5291,6 +5456,16 @@ if (document.readyState === 'loading') {
         <span class="icon">◈</span> Meu Perfil
       </button>
 
+      <!-- ── ADMINISTRAÇÃO ──────────────────────────────────────
+           Visível apenas para educador e super_admin.
+           A visibilidade é controlada em verificarSessao()
+           com base no sbUserRole carregado do Supabase.
+      ──────────────────────────────────────────────────────── -->
+      <div class="nav-section-label" id="nav-admin-section" style="display:none">Administração</div>
+      <button class="nav-btn" id="nav-admin-btn" onclick="window.location.href='admin.html'" style="display:none">
+        <span class="icon">★</span> Painel Admin
+      </button>
+
       <div class="nav-section-label">Recursos</div>
       <button class="nav-btn" id="btn-instalar-pwa" onclick="instalarPWA()" style="display:none">
         <span class="icon">⊕</span> Adicionar à tela inicial
@@ -5302,7 +5477,12 @@ if (document.readyState === 'loading') {
 
     <div class="stats-footer">
       <div class="stat-row" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-        <span class="stat-label" style="font-size:11px;opacity:0.6">◎ <span id="sb-user-nome">...</span></span>
+        <!-- Nome do usuário + badge de role (aparece para educador/super_admin) -->
+        <span class="stat-label" style="font-size:11px;opacity:0.6">
+          ◎ <span id="sb-user-nome">...</span>
+          <!-- Badge exibido em verificarSessao() para roles acima de aluno -->
+          <span id="sb-user-role" style="display:none;font-size:9px;color:var(--accent);margin-left:6px;letter-spacing:1px;text-transform:uppercase;opacity:1"></span>
+        </span>
         <button onclick="logout()" title="Sair" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0;font-family:var(--font-mono)">sair →</button>
       </div>
       <div class="stat-row" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
@@ -5502,7 +5682,7 @@ if (document.readyState === 'loading') {
         <div class="notes-layout">
           <div class="notes-list">
             <div class="notes-search">
-              <input type="text" placeholder="Buscar anotações..." id="notes-search" oninput="renderListaNotas()">
+              <input type="text" placeholder="Buscar anotações..." id="notes-search" oninput="clearTimeout(_searchDebounce); _searchDebounce = setTimeout(() => renderListaNotas(), 200);">
             </div>
             <div id="notes-list-body"></div>
           </div>
