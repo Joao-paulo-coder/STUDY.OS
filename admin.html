@@ -275,16 +275,16 @@ const CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
 (async () => {
   try {
     // Segurança: garante que roles.js criou o cliente Supabase
-    if (\!window._sb) throw new Error('Supabase nao inicializado — roles.js falhou ao carregar.');
+    if (!window._sb) throw new Error('Supabase nao inicializado — roles.js falhou ao carregar.');
 
     // 1. Verifica se há sessão ativa
     const { data: { session }, error: sessErr } = await sb.auth.getSession();
     if (sessErr) throw sessErr;
-    if (\!session) { window.location.href = 'index.html'; return; }
+    if (!session) { window.location.href = 'index.html'; return; }
 
     // 2. Busca o perfil com role do usuário logado
     currentProfile = await StudyRoles.getUserProfile();
-    if (\!currentProfile) { window.location.href = 'index.html'; return; }
+    if (!currentProfile) { window.location.href = 'index.html'; return; }
 
     // 3. Bloqueia acesso a usuários sem permissão (alunos)
     if ((StudyRoles.ROLE_LEVEL[currentProfile.role] ?? 0) < 2) {
