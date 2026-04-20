@@ -261,9 +261,8 @@ let filteredUsers  = [];   // lista após aplicar busca e filtro de role
 let selectedUser   = null; // usuário selecionado na sidebar
 let filterRole     = 'all';// filtro de role ativo: 'all'|'aluno'|'educador'|'super_admin'
 
-// Reutiliza a instância Supabase criada pelo roles.js (window._sb)
-// Não criamos uma segunda instância para evitar conflitos de sessão
-const sb = window._sb;
+// sb já declarado em roles.js (mesmo escopo global) — não redeclarar
+// const sb = window._sb; <- REMOVIDO para evitar SyntaxError de redeclaração
 
 // Cores das matérias (mesma ordem do studyos.html)
 const CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
