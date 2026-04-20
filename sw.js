@@ -1,10 +1,12 @@
-const CACHE_NAME = 'studyos-v3';
+const CACHE_NAME = 'studyos-v4';
 
 // Assets para cachear na instalação
 const ASSETS = [
   '/',
   '/studyos.html',
   '/index.html',
+  '/admin.html',
+  '/roles.js',
   '/manifest.json',
 ];
 
@@ -71,19 +73,17 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Para outros assets: cache-first com atualização em background
+  // Para JS e outros assets locais: network-first para garantir versão atualizada
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(response => {
+    fetch(e.request)
+      .then(response => {
         if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
         }
         return response;
-      }).catch(() => null);
-
-      return cached || fetchPromise;
-    })
+      })
+      .catch(() => caches.match(e.request))
   );
 });
 

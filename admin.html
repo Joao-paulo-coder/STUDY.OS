@@ -273,37 +273,53 @@ const CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
 // Verifica sessão Supabase, carrega perfil e monta a interface
 // ===================================================================
 (async () => {
-  // 1. Verifica se há sessão ativa
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
+  try {
+    // Segurança: garante que roles.js criou o cliente Supabase
+    if (\!window._sb) throw new Error('Supabase nao inicializado — roles.js falhou ao carregar.');
 
-  // 2. Busca o perfil com role do usuário logado
-  currentProfile = await StudyRoles.getUserProfile();
-  if (!currentProfile) { window.location.href = 'index.html'; return; }
+    // 1. Verifica se há sessão ativa
+    const { data: { session }, error: sessErr } = await sb.auth.getSession();
+    if (sessErr) throw sessErr;
+    if (\!session) { window.location.href = 'index.html'; return; }
 
-  // 3. Bloqueia acesso a usuários sem permissão (alunos)
-  if ((StudyRoles.ROLE_LEVEL[currentProfile.role] ?? 0) < 2) {
+    // 2. Busca o perfil com role do usuário logado
+    currentProfile = await StudyRoles.getUserProfile();
+    if (\!currentProfile) { window.location.href = 'index.html'; return; }
+
+    // 3. Bloqueia acesso a usuários sem permissão (alunos)
+    if ((StudyRoles.ROLE_LEVEL[currentProfile.role] ?? 0) < 2) {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('access-denied').style.display  = 'flex';
+      return;
+    }
+
+    // 4. Configura header com role do logado
+    const pill = document.getElementById('header-role-pill');
+    pill.textContent = currentProfile.role === 'super_admin' ? '★ Super Admin' : '◈ Educador';
+    pill.className   = `role-pill pill-${currentProfile.role}`;
+    document.getElementById('header-panel-label').textContent =
+      currentProfile.role === 'super_admin' ? 'Painel Super Admin' : 'Painel Educador';
+
+    // 5. Monta filtros na sidebar conforme role
+    montarFiltros();
+
+    // 6. Carrega lista de usuários do Supabase
+    await carregarUsuarios();
+
+    // 7. Exibe o layout
     document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('access-denied').style.display  = 'flex';
-    return;
+    document.getElementById('layout').style.display = 'grid';
+
+  } catch (err) {
+    // Qualquer erro inesperado: mostra mensagem em vez de travar infinitamente
+    console.error('[admin] Erro na inicializacao:', err);
+    const ls = document.getElementById('loading-screen');
+    ls.innerHTML = `
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff">StudyOS</div>
+      <div style="color:#f07c7c;margin-top:4px">Erro: ${err.message}</div>
+      <button onclick="location.reload()" style="margin-top:16px;padding:10px 22px;border-radius:10px;background:rgba(74,159,255,0.15);border:1px solid rgba(74,159,255,0.3);color:#4a9fff;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;">Tentar novamente</button>
+      <button onclick="window.location.href='index.html'" style="margin-top:8px;padding:10px 22px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;">Voltar ao login</button>`;
   }
-
-  // 4. Configura header com role do logado
-  const pill = document.getElementById('header-role-pill');
-  pill.textContent = currentProfile.role === 'super_admin' ? '★ Super Admin' : '◈ Educador';
-  pill.className   = `role-pill pill-${currentProfile.role}`;
-  document.getElementById('header-panel-label').textContent =
-    currentProfile.role === 'super_admin' ? 'Painel Super Admin' : 'Painel Educador';
-
-  // 5. Monta filtros na sidebar conforme role
-  montarFiltros();
-
-  // 6. Carrega lista de usuários do Supabase
-  await carregarUsuarios();
-
-  // 7. Exibe o layout
-  document.getElementById('loading-screen').style.display = 'none';
-  document.getElementById('layout').style.display = 'grid';
 })();
 
 // ===================================================================
