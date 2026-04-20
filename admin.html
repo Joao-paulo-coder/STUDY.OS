@@ -1,4 +1,4 @@
-<\!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -160,14 +160,14 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
 </head>
 <body>
 
-<\!-- ================================================================
+<!-- ================================================================
      HTML — ESTRUTURA DA PÁGINA
      ================================================================ -->
 
-<\!-- Layout principal (oculto até verificação de permissão) -->
+<!-- Layout principal (oculto até verificação de permissão) -->
 <div class="layout" id="layout" style="display:none">
 
-  <\!-- HEADER -->
+  <!-- HEADER -->
   <header class="header">
     <div class="header-left">
       <span class="logo">StudyOS</span>
@@ -180,13 +180,13 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
     </div>
   </header>
 
-  <\!-- SIDEBAR — lista de usuários com busca e filtros -->
+  <!-- SIDEBAR — lista de usuários com busca e filtros -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-title" id="sidebar-title">Usuários</div>
       <input class="search-box" type="text" id="search-input"
         placeholder="Buscar por nome ou email…" oninput="filtrarUsuarios()" />
-      <\!-- Filtros de role: preenchidos dinamicamente conforme quem está logado -->
+      <!-- Filtros de role: preenchidos dinamicamente conforme quem está logado -->
       <div class="filter-row" id="filter-row"></div>
     </div>
     <div class="users-count" id="users-count">Carregando…</div>
@@ -195,19 +195,19 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
     </div>
   </aside>
 
-  <\!-- ÁREA PRINCIPAL -->
+  <!-- ÁREA PRINCIPAL -->
   <main class="main" id="main-area">
 
-    <\!-- Tela de boas-vindas: exibida até o usuário selecionar alguém -->
+    <!-- Tela de boas-vindas: exibida até o usuário selecionar alguém -->
     <div class="welcome-screen" id="welcome-screen">
       <div class="icon-big">◎</div>
       <p>Selecione um usuário na lista para ver os dados</p>
     </div>
 
-    <\!-- Painel do usuário selecionado (oculto inicialmente) -->
+    <!-- Painel do usuário selecionado (oculto inicialmente) -->
     <div id="user-panel" style="display:none;flex-direction:column;height:100%">
 
-      <\!-- Cabeçalho com avatar, nome, email e role do usuário selecionado -->
+      <!-- Cabeçalho com avatar, nome, email e role do usuário selecionado -->
       <div class="user-header">
         <div class="user-header-info">
           <div class="user-header-avatar" id="panel-avatar"></div>
@@ -223,10 +223,10 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
         </div>
       </div>
 
-      <\!-- Barra de abas: gerada em JS conforme role do logado -->
+      <!-- Barra de abas: gerada em JS conforme role do logado -->
       <div class="tabs-bar" id="tabs-bar"></div>
 
-      <\!-- Conteúdo dinâmico da aba ativa -->
+      <!-- Conteúdo dinâmico da aba ativa -->
       <div class="tab-content" id="tab-content">
         <div class="spinner-wrap">Carregando…</div>
       </div>
@@ -234,7 +234,7 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
   </main>
 </div>
 
-<\!-- Tela de acesso negado (aluno tenta abrir a URL diretamente) -->
+<!-- Tela de acesso negado (aluno tenta abrir a URL diretamente) -->
 <div class="access-denied" id="access-denied" style="display:none">
   <div style="font-size:40px">🔒</div>
   <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Acesso não autorizado</div>
@@ -242,13 +242,13 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
   <button onclick="window.location.href='studyos.html'" style="margin-top:20px;padding:12px 24px;border-radius:12px;background:linear-gradient(135deg,#4a9fff,#6366f1);border:none;color:#fff;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;font-size:14px;">← Voltar ao app</button>
 </div>
 
-<\!-- Loading inicial enquanto verifica permissões -->
+<!-- Loading inicial enquanto verifica permissões -->
 <div id="loading-screen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#080a0f;flex-direction:column;gap:12px;color:#4a5568;font-size:12px;">
   <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff">StudyOS</div>
   <div>Verificando permissões…</div>
 </div>
 
-<\!-- Toast de notificação -->
+<!-- Toast de notificação -->
 <div id="toast"></div>
 
 <script>
@@ -275,11 +275,11 @@ const CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
 (async () => {
   // 1. Verifica se há sessão ativa
   const { data: { session } } = await sb.auth.getSession();
-  if (\!session) { window.location.href = 'index.html'; return; }
+  if (!session) { window.location.href = 'index.html'; return; }
 
   // 2. Busca o perfil com role do usuário logado
   currentProfile = await StudyRoles.getUserProfile();
-  if (\!currentProfile) { window.location.href = 'index.html'; return; }
+  if (!currentProfile) { window.location.href = 'index.html'; return; }
 
   // 3. Bloqueia acesso a usuários sem permissão (alunos)
   if ((StudyRoles.ROLE_LEVEL[currentProfile.role] ?? 0) < 2) {
@@ -359,7 +359,7 @@ function filtrarUsuarios() {
   const termo = (document.getElementById('search-input').value || '').toLowerCase();
   filteredUsers = allUsers.filter(u => {
     const passaRole  = filterRole === 'all' || u.role === filterRole;
-    const passaTexto = \!termo ||
+    const passaTexto = !termo ||
       (u.nome  || '').toLowerCase().includes(termo) ||
       (u.email || '').toLowerCase().includes(termo);
     return passaRole && passaTexto;
@@ -375,7 +375,7 @@ function renderUsuarios() {
   const count = document.getElementById('users-count');
   count.textContent = `${filteredUsers.length} usuário(s)`;
 
-  if (\!filteredUsers.length) {
+  if (!filteredUsers.length) {
     list.innerHTML = '<div class="users-empty">Nenhum usuário encontrado</div>';
     return;
   }
@@ -398,7 +398,7 @@ function renderUsuarios() {
 // ===================================================================
 async function selecionarUsuario(userId) {
   selectedUser = allUsers.find(u => u.id === userId);
-  if (\!selectedUser) return;
+  if (!selectedUser) return;
 
   renderUsuarios(); // atualiza estado .active na lista
 
@@ -494,7 +494,7 @@ async function renderVisaoGeral() {
   const materias = rMat.data || [];
 
   const feitas     = tarefas.filter(t => t.done).length;
-  const atrasadas  = tarefas.filter(t => \!t.done && t.data && t.data < hojeStr()).length;
+  const atrasadas  = tarefas.filter(t => !t.done && t.data && t.data < hojeStr()).length;
   const totalMins  = pomLogs.reduce((s,p) => s + (p.mins||0), 0);
   const horas      = Math.floor(totalMins/60);
   const diasUnicos = new Set(pomLogs.map(p => p.data)).size;
@@ -574,13 +574,13 @@ async function renderTarefas() {
   const matMap  = Object.fromEntries((rMat.data||[]).map(m=>[m.id,m.nome]));
   const hoje    = hojeStr();
 
-  if (\!tarefas.length) {
+  if (!tarefas.length) {
     document.getElementById('tab-content').innerHTML =
       `<div class="empty-state"><div class="empty-icon">◻</div><p>Nenhuma tarefa cadastrada</p></div>`;
     return;
   }
 
-  const grupo = (lista, titulo, cls, lbl) => \!lista.length ? '' : `
+  const grupo = (lista, titulo, cls, lbl) => !lista.length ? '' : `
     <div class="section">
       <div class="section-title">${titulo} (${lista.length})</div>
       <div class="table-wrap"><table class="data-table">
@@ -595,8 +595,8 @@ async function renderTarefas() {
     </div>`;
 
   document.getElementById('tab-content').innerHTML =
-    grupo(tarefas.filter(t=>\!t.done&&t.data&&t.data<hoje), 'Atrasadas',  'tag-late',    'Atrasada') +
-    grupo(tarefas.filter(t=>\!t.done&&(\!t.data||t.data>=hoje)), 'Pendentes','tag-pending','Pendente') +
+    grupo(tarefas.filter(t=>!t.done&&t.data&&t.data<hoje), 'Atrasadas',  'tag-late',    'Atrasada') +
+    grupo(tarefas.filter(t=>!t.done&&(!t.data||t.data>=hoje)), 'Pendentes','tag-pending','Pendente') +
     grupo(tarefas.filter(t=>t.done),                          'Concluídas','tag-done',   'Feita');
 }
 
@@ -613,7 +613,7 @@ async function renderNotas() {
   const notas  = rNot.data || [];
   const matMap = Object.fromEntries((rMat.data||[]).map(m=>[m.id,m.nome]));
 
-  if (\!notas.length) {
+  if (!notas.length) {
     document.getElementById('tab-content').innerHTML =
       `<div class="empty-state"><div class="empty-icon">◧</div><p>Nenhuma anotação encontrada</p></div>`;
     return;
@@ -647,7 +647,7 @@ async function renderProgresso() {
   const logs   = rPom.data || [];
   const matMap = Object.fromEntries((rMat.data||[]).map(m=>[m.id,m.nome]));
 
-  if (\!logs.length) {
+  if (!logs.length) {
     document.getElementById('tab-content').innerHTML =
       `<div class="empty-state"><div class="empty-icon">◉</div><p>Nenhuma sessão de estudo registrada</p></div>`;
     return;
@@ -657,7 +657,7 @@ async function renderProgresso() {
   const ultimos7 = [];
   for (let i=6;i>=0;i--) { const d=new Date(); d.setDate(d.getDate()-i); ultimos7.push(d.toISOString().split('T')[0]); }
   const minsDia = {}; ultimos7.forEach(d=>{ minsDia[d]=0; });
-  logs.forEach(l => { if(minsDia[l.data]\!==undefined) minsDia[l.data]+=(l.mins||0); });
+  logs.forEach(l => { if(minsDia[l.data]!==undefined) minsDia[l.data]+=(l.mins||0); });
   const maxMin  = Math.max(...Object.values(minsDia),1);
   const totalM  = logs.reduce((s,l)=>s+(l.mins||0),0);
   const diasEst = new Set(logs.map(l=>l.data)).size;
@@ -760,7 +760,7 @@ async function renderRotina() {
 // Altera role do usuário, mostra metadados e contagens de dados
 // ===================================================================
 async function renderGestao() {
-  if (currentProfile.role \!== 'super_admin') {
+  if (currentProfile.role !== 'super_admin') {
     document.getElementById('tab-content').innerHTML =
       `<div class="empty-state"><div class="empty-icon">🔒</div><p>Acesso restrito</p></div>`;
     return;
@@ -821,7 +821,7 @@ async function renderGestao() {
 // ===================================================================
 async function salvarRole() {
   const novoRole = document.getElementById('select-novo-role')?.value;
-  if (\!novoRole) return;
+  if (!novoRole) return;
 
   const { error } = await sb.from('profiles').update({ role: novoRole }).eq('id', selectedUser.id);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
@@ -829,7 +829,7 @@ async function salvarRole() {
   // Atualiza objeto local sem recarregar tudo
   selectedUser.role = novoRole;
   const idx = allUsers.findIndex(u=>u.id===selectedUser.id);
-  if (idx\!==-1) allUsers[idx].role = novoRole;
+  if (idx!==-1) allUsers[idx].role = novoRole;
 
   // Atualiza badge no cabeçalho do painel
   const badge = document.getElementById('panel-role-badge');
@@ -837,7 +837,7 @@ async function salvarRole() {
   badge.className   = `role-badge badge-${novoRole}`;
 
   filtrarUsuarios();
-  showToast(`Role atualizado para "${novoRole.replace('_',' ')}"\!`);
+  showToast(`Role atualizado para "${novoRole.replace('_',' ')}"!`);
 }
 
 // ===================================================================
@@ -849,7 +849,7 @@ function hojeStr() { return new Date().toISOString().split('T')[0]; }
 
 // Converte YYYY-MM-DD para DD/MM/YYYY
 function formatarData(d) {
-  if (\!d) return '—';
+  if (!d) return '—';
   const [y,m,dd] = d.split('-');
   return `${dd}/${m}/${y}`;
 }
