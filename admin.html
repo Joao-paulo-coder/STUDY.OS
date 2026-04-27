@@ -152,6 +152,99 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
 #toast { position:fixed; bottom:24px; right:24px; z-index:9999; padding:12px 20px; border-radius:12px; font-size:12px; display:none; animation:slideUp 0.3s ease; }
 @keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
+
+/* =====================================================
+   RESPONSIVIDADE MOBILE
+   ===================================================== */
+
+/* Botão hamburguer — só aparece em mobile */
+.btn-menu {
+  display:none; background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);
+  width:36px; height:36px; border-radius:8px; cursor:pointer;
+  font-size:16px; align-items:center; justify-content:center;
+  flex-shrink:0; transition:all 0.2s;
+}
+.btn-menu:hover { background:rgba(255,255,255,0.08); color:#fff; }
+
+/* Botão voltar na área principal — só aparece em mobile */
+.btn-back-sidebar {
+  display:none; align-items:center; gap:6px; background:transparent;
+  border:none; color:var(--accent); font-family:'DM Mono',monospace;
+  font-size:12px; cursor:pointer; padding:10px 16px;
+  border-bottom:1px solid var(--border); width:100%; text-align:left;
+}
+
+/* Overlay escuro ao abrir sidebar no mobile */
+#sidebar-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  z-index:49; backdrop-filter:blur(2px);
+}
+#sidebar-overlay.visible { display:block; }
+
+@media (max-width: 768px) {
+  /* Layout vira coluna única */
+  .layout {
+    grid-template-columns: 1fr \!important;
+    grid-template-rows: 52px 1fr \!important;
+  }
+
+  /* Header compacto */
+  .header { padding:0 12px; gap:8px; }
+  .header-badge-text { display:none; }
+  .btn-header { padding:6px 10px; font-size:10px; }
+
+  /* Esconde o texto "Voltar ao app" no mobile, mantém só o ← */
+  .btn-voltar-text { display:none; }
+
+  /* Hamburguer visível */
+  .btn-menu { display:flex; }
+
+  /* Sidebar vira drawer deslizante */
+  .sidebar {
+    position:fixed; top:52px; left:0; bottom:0;
+    width:280px; z-index:50;
+    transform:translateX(-100%);
+    transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow:4px 0 24px rgba(0,0,0,0.4);
+  }
+  .sidebar.open { transform:translateX(0); }
+
+  /* Área principal ocupa tudo */
+  .main { grid-column:1 / -1; }
+
+  /* Botão voltar aparece quando painel está aberto */
+  .btn-back-sidebar { display:flex; }
+
+  /* User header mais compacto */
+  .user-header { padding:12px 16px; flex-wrap:wrap; gap:8px; }
+  .user-header-nome { font-size:14px; }
+  .user-header-email { font-size:10px; }
+
+  /* Tabs com scroll horizontal */
+  .tabs-bar { padding:0 12px; }
+  .tab-btn { padding:10px 12px; font-size:11px; }
+
+  /* Conteúdo com padding menor */
+  .tab-content { padding:16px; }
+
+  /* Métricas em 2 colunas */
+  .metrics-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .metric-value { font-size:20px; }
+
+  /* Tabelas com scroll horizontal */
+  .table-wrap { overflow-x:auto; }
+
+  /* Item cards mais compactos */
+  .item-card { padding:12px 14px; }
+
+  /* Rotina: scroll horizontal */
+  .rotina-grid { min-width:520px; }
+
+  /* Toast no centro do mobile */
+  #toast { left:16px; right:16px; text-align:center; }
+}
+
 /* Tela de acesso negado */
 .access-denied { flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; padding:40px; text-align:center; }
 </style>
@@ -170,18 +263,20 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
   <!-- HEADER -->
   <header class="header">
     <div class="header-left">
+      <button class="btn-menu" onclick="toggleSidebar()" title="Menu" id="btn-menu">☰</button>
       <span class="logo">StudyOS</span>
       <span class="role-pill" id="header-role-pill">…</span>
-      <span style="font-size:11px;color:var(--muted);letter-spacing:1px" id="header-panel-label"></span>
+      <span style="font-size:11px;color:var(--muted);letter-spacing:1px" id="header-panel-label" class="header-badge-text"></span>
     </div>
     <div class="header-right">
-      <button class="btn-header" onclick="window.location.href='studyos.html'">← Voltar ao app</button>
+      <button class="btn-header" onclick="window.location.href='studyos.html'">← <span class="btn-voltar-text">Voltar ao app</span></button>
       <button class="btn-header btn-danger" onclick="logout()">Sair</button>
     </div>
   </header>
 
   <!-- SIDEBAR — lista de usuários com busca e filtros -->
-  <aside class="sidebar">
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-title" id="sidebar-title">Usuários</div>
       <input class="search-box" type="text" id="search-input"
@@ -199,6 +294,9 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
   <main class="main" id="main-area">
 
     <!-- Tela de boas-vindas: exibida até o usuário selecionar alguém -->
+    <button class="btn-back-sidebar" id="btn-back-sidebar" onclick="closeSidebar(); closeSidebar();" style="display:none">
+      ← Ver lista de usuários
+    </button>
     <div class="welcome-screen" id="welcome-screen">
       <div class="icon-big">◎</div>
       <p>Selecione um usuário na lista para ver os dados</p>
@@ -887,6 +985,49 @@ function showToast(msg, type='success') {
   clearTimeout(t._timer);
   t._timer = setTimeout(()=>{ t.style.display='none'; }, 3500);
 }
+// ===================================================================
+// MOBILE — Toggle da sidebar como drawer
+// ===================================================================
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    sidebar.classList.add('open');
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.remove('open');
+  overlay.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+// Fecha sidebar ao selecionar usuário no mobile
+const _selecionarUsuarioOrig = selecionarUsuario;
+// Sobrescreve para fechar sidebar no mobile após seleção
+async function selecionarUsuario(userId) {
+  await _selecionarUsuarioOrig(userId);
+  // Em mobile: fecha sidebar e mostra botão voltar
+  if (window.innerWidth <= 768) {
+    closeSidebar();
+    document.getElementById('btn-back-sidebar').style.display = 'flex';
+  }
+}
+
+// Fecha sidebar ao redimensionar para desktop
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    closeSidebar();
+    document.getElementById('btn-back-sidebar').style.display = 'none';
+  }
+});
+
 </script>
 </body>
 </html>
