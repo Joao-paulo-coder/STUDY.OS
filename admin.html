@@ -185,8 +185,8 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
 @media (max-width: 768px) {
   /* Layout vira coluna única */
   .layout {
-    grid-template-columns: 1fr \!important;
-    grid-template-rows: 52px 1fr \!important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 52px 1fr !important;
   }
 
   /* Header compacto */
@@ -974,7 +974,7 @@ function prescritaSelecionarMateria(matId) {
 
 function prescritaToggleSlot(key) {
   const el = document.getElementById('ps-'+key);
-  if (\!el) return;
+  if (!el) return;
   if (_prescritaMatAtiva === null) {
     delete _prescritaEditMap[key];
     el.textContent = ''; el.classList.remove('filled');
@@ -1002,7 +1002,7 @@ async function salvarMeta() {
   const obs  = document.getElementById('obs-educador-input').value || '';
   const { error } = await sb.from('profiles').update({ meta_horas_semana: meta, obs_educador: obs }).eq('id', selectedUser.id);
   if (error) showToast('Erro ao salvar meta: '+error.message, 'error');
-  else showToast('Meta e orientações salvas\!');
+  else showToast('Meta e orientações salvas!');
 }
 
 async function salvarRotinaPrescrita() {
@@ -1015,7 +1015,7 @@ async function salvarRotinaPrescrita() {
     const { error } = await sb.from('rotina_prescrita').insert(slots);
     if (error) { showToast('Erro ao salvar: '+error.message, 'error'); return; }
   }
-  showToast('Rotina prescrita salva — '+slots.length+' slots definidos\!');
+  showToast('Rotina prescrita salva — '+slots.length+' slots definidos!');
 }
 
 // ===================================================================
