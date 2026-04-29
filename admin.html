@@ -247,6 +247,33 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
 
 /* Tela de acesso negado */
 .access-denied { flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; padding:40px; text-align:center; }
+
+/* === MODAL CRIAR TAREFA / MATÉRIA === */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
+.modal-overlay.hidden { display:none; }
+.modal-box { background:#0d1117; border:1px solid var(--border); border-radius:18px; padding:28px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; }
+.modal-box::-webkit-scrollbar { width:4px; }
+.modal-box::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.modal-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:800; margin-bottom:20px; line-height:1.3; }
+.form-group { margin-bottom:16px; }
+.form-label { display:block; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.form-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-size:13px; font-family:'DM Mono',monospace; outline:none; transition:border-color 0.2s; }
+.form-input:focus { border-color:rgba(74,159,255,0.4); }
+.form-select { width:100%; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-size:12px; font-family:'DM Mono',monospace; outline:none; cursor:pointer; }
+.form-select option { background:#0d1117; }
+.cor-picker { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+.cor-btn { width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:all 0.15s; }
+.cor-btn.selected { border-color:#fff; transform:scale(1.2); box-shadow:0 0 0 2px rgba(255,255,255,0.2); }
+.modal-actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+.btn-modal-cancel { background:transparent; border:1px solid var(--border); color:var(--muted); padding:9px 20px; border-radius:10px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; transition:all 0.2s; }
+.btn-modal-cancel:hover { border-color:rgba(255,255,255,0.2); color:#fff; }
+.btn-modal-save { background:var(--accent); border:none; color:#fff; padding:9px 20px; border-radius:10px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; font-weight:600; transition:opacity 0.2s; }
+.btn-modal-save:hover { opacity:0.85; }
+.btn-modal-save:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-add { background:rgba(74,159,255,0.1); border:1px solid rgba(74,159,255,0.25); color:var(--accent); padding:6px 14px; border-radius:8px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.2s; }
+.btn-add:hover { background:rgba(74,159,255,0.2); }
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.section-header .section-title { margin-bottom:0; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="roles.js"></script>
@@ -348,6 +375,15 @@ html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM
 
 <!-- Toast de notificação -->
 <div id="toast"></div>
+
+<!-- ================================================================
+     MODAL — Criar tarefa / matéria para o aluno selecionado
+     ================================================================ -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-box" id="modal-box">
+    <!-- conteúdo gerado dinamicamente via JS -->
+  </div>
+</div>
 
 <script>
 // ===================================================================
@@ -615,13 +651,18 @@ async function renderVisaoGeral() {
         }).join('')}</tbody>
       </table></div>
     </div>` : ''}
-    ${materias.length ? `
     <div class="section">
-      <div class="section-title">Matérias cadastradas</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${materias.map(m=>`<span class="materia-chip" style="border-left:3px solid ${CORES[m.cor]||'var(--accent)'};padding-left:8px">${m.nome}</span>`).join('')}
+      <div class="section-header">
+        <div class="section-title">Matérias cadastradas</div>
+        <button class="btn-add" onclick="abrirModalMateria()">+ Nova Matéria</button>
       </div>
-    </div>` : ''}`;
+      ${materias.length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:8px">
+            ${materias.map(m=>`<span class="materia-chip" style="border-left:3px solid ${CORES[m.cor]||'var(--accent)'};padding-left:8px">${m.nome}</span>`).join('')}
+           </div>`
+        : `<div style="color:var(--muted);font-size:12px;padding:8px 0">Nenhuma matéria cadastrada ainda.</div>`
+      }
+    </div>`;
 }
 
 async function renderTarefas() {
@@ -634,8 +675,14 @@ async function renderTarefas() {
   const matMap  = Object.fromEntries((rMat.data||[]).map(m=>[m.id,m.nome]));
   const hoje    = hojeStr();
 
+  const btnNovaTarefa = `
+    <div style="margin-bottom:20px;display:flex;justify-content:flex-end">
+      <button class="btn-add" onclick="abrirModalTarefa()">+ Nova Tarefa</button>
+    </div>`;
+
   if (!tarefas.length) {
     document.getElementById('tab-content').innerHTML =
+      btnNovaTarefa +
       `<div class="empty-state"><div class="empty-icon">◻</div><p>Nenhuma tarefa cadastrada</p></div>`;
     return;
   }
@@ -655,6 +702,7 @@ async function renderTarefas() {
     </div>`;
 
   document.getElementById('tab-content').innerHTML =
+    btnNovaTarefa +
     grupo(tarefas.filter(t=>!t.done&&t.data&&t.data<hoje), 'Atrasadas',  'tag-late',    'Atrasada') +
     grupo(tarefas.filter(t=>!t.done&&(!t.data||t.data>=hoje)), 'Pendentes','tag-pending','Pendente') +
     grupo(tarefas.filter(t=>t.done),                          'Concluídas','tag-done',   'Feita');
@@ -1180,35 +1228,55 @@ function showToast(msg, type='success') {
 }
 
 // ===================================================================
-// MOBILE — Toggle da sidebar como drawer
+// MODAL — Criar Tarefa / Matéria para o aluno selecionado
 // ===================================================================
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  if (sidebar.classList.contains('open')) {
-    closeSidebar();
-  } else {
-    sidebar.classList.add('open');
-    overlay.classList.add('visible');
-    document.body.style.overflow = 'hidden';
-  }
+
+async function abrirModalTarefa() {
+  const { data: mats } = await sb.from('materias').select('id,nome').eq('user_id', selectedUser.id).order('nome');
+  const opsMat = (mats || []).map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
+
+  document.getElementById('modal-box').innerHTML = `
+    <div class="modal-title">+ Nova Tarefa<br><span style="font-size:11px;font-weight:400;color:var(--muted)">para ${selectedUser.nome || selectedUser.email}</span></div>
+    <div class="form-group">
+      <label class="form-label">Descrição *</label>
+      <input class="form-input" id="f-descricao" type="text" placeholder="Ex: Estudar Capítulo 3…" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Matéria</label>
+      <select class="form-select" id="f-materia">
+        <option value="">— Sem matéria —</option>
+        ${opsMat}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input class="form-input" id="f-data" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hora</label>
+      <input class="form-input" id="f-hora" type="time">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prioridade</label>
+      <select class="form-select" id="f-prior">
+        <option value="0">Normal</option>
+        <option value="1">Média</option>
+        <option value="2">Alta</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-modal-save" id="btn-modal-save" onclick="salvarTarefa()">Criar Tarefa</button>
+    </div>`;
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
-function closeSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  sidebar.classList.remove('open');
-  overlay.classList.remove('visible');
-  document.body.style.overflow = '';
-}
+async function abrirModalMateria() {
+  const coresBtns = CORES.map((c, i) =>
+    `<button type="button" class="cor-btn ${i===0?'selected':''}" style="background:${c}"
+     onclick="selecionarCor(${i})" id="cor-btn-${i}"></button>`
+  ).join('');
 
-window.addEventListener('resize', () => {
-  if (window.innerWidth > 768) {
-    closeSidebar();
-    document.getElementById('btn-back-sidebar').style.display = 'none';
-  }
-});
-
-</script>
-</body>
-</html>
+  document.getElementById('modal-box').innerHTML = `
+    <div class="modal-title">+ Nova Matéria<br><span style="font-size:11px;font-weight:
