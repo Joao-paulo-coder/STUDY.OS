@@ -1279,4 +1279,137 @@ async function abrirModalMateria() {
   ).join('');
 
   document.getElementById('modal-box').innerHTML = `
-    <div class="modal-title">+ Nova Matéria<br><span style="font-size:11px;font-weight:
+    <div class="modal-title">+ Nova Matéria<br><span style="font-size:11px;font-weight:400;color:var(--muted)">para ${selectedUser.nome || selectedUser.email}</span></div>
+    <div class="form-group">
+      <label class="form-label">Nome *</label>
+      <input class="form-input" id="f-nome-mat" type="text" placeholder="Ex: Matemática, Português…" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor</label>
+      <div class="cor-picker">${coresBtns}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Meta semanal (minutos)</label>
+      <input class="form-input" id="f-meta" type="number" min="0" max="9999" placeholder="Ex: 120">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-modal-save" id="btn-modal-save" onclick="salvarMateria()">Criar Matéria</button>
+    </div>`;
+
+  window._corSelecionada = 0;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function selecionarCor(idx) {
+  document.querySelectorAll('.cor-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('cor-btn-' + idx);
+  if (btn) btn.classList.add('selected');
+  window._corSelecionada = idx;
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+  });
+});
+
+async function salvarTarefa() {
+  const descricao = (document.getElementById('f-descricao').value || '').trim();
+  if (!descricao) { showToast('Descrição obrigatória', 'error'); return; }
+
+  const materia = document.getElementById('f-materia').value || null;
+  const data    = document.getElementById('f-data').value    || null;
+  const hora    = document.getElementById('f-hora').value    || null;
+  const prior   = parseInt(document.getElementById('f-prior').value) || 0;
+
+  const btn = document.getElementById('btn-modal-save');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  const { error } = await sb.from('tarefas').insert({
+    user_id: selectedUser.id,
+    descricao,
+    materia,
+    data,
+    hora,
+    prior,
+    done: false,
+  });
+
+  if (error) {
+    showToast('Erro: ' + error.message, 'error');
+    btn.disabled = false; btn.textContent = 'Criar Tarefa';
+    return;
+  }
+
+  showToast('Tarefa criada com sucesso!', 'success');
+  fecharModal();
+  await renderTarefas();
+}
+
+async function salvarMateria() {
+  const nome = (document.getElementById('f-nome-mat').value || '').trim();
+  if (!nome) { showToast('Nome obrigatório', 'error'); return; }
+
+  const cor  = window._corSelecionada ?? 0;
+  const meta = parseInt(document.getElementById('f-meta').value) || null;
+
+  const btn = document.getElementById('btn-modal-save');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  const { error } = await sb.from('materias').insert({
+    user_id: selectedUser.id,
+    nome,
+    cor,
+    meta,
+  });
+
+  if (error) {
+    showToast('Erro: ' + error.message, 'error');
+    btn.disabled = false; btn.textContent = 'Criar Matéria';
+    return;
+  }
+
+  showToast('Matéria criada com sucesso!', 'success');
+  fecharModal();
+  await renderVisaoGeral();
+  mudarAba('visao-geral');
+}
+
+// ===================================================================
+// MOBILE — Toggle da sidebar como drawer
+// ===================================================================
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    sidebar.classList.add('open');
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.remove('open');
+  overlay.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    closeSidebar();
+    document.getElementById('btn-back-sidebar').style.display = 'none';
+  }
+});
+
+</script>
+</body>
+</html>
