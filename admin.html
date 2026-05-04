@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyOS — Painel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #080a0f; color: #e8edf8; font-family: 'DM Mono', monospace; overflow: hidden; }
+:root {
+  --bg:#080a0f; --surface:#0d0f0e; --card:#131613; --border:#1e2220;
+  --accent:#4a9fff; --accent2:#a78bfa; --green:#34d399; --yellow:#fbbf24;
+  --red:#f07c7c; --text:#e8edf8; --muted:#4a5568;
+}
+.layout { display:grid; grid-template-rows:52px 1fr; grid-template-columns:260px 1fr; height:100vh; }
+.header { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; padding:0 20px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); z-index:10; }
+.header-left  { display:flex; align-items:center; gap:16px; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.logo { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; background:linear-gradient(135deg,#fff,rgba(255,255,255,0.5)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.role-pill { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; padding:3px 10px; border-radius:100px; font-weight:600; }
+.pill-super_admin { background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
+.pill-educador { background:rgba(74,159,255,0.15); color:#4a9fff; border:1px solid rgba(74,159,255,0.3); }
+.pill-aluno { background:rgba(52,211,153,0.10); color:#34d399; border:1px solid rgba(52,211,153,0.2); }
+.btn-header { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.6); padding:6px 14px; border-radius:8px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.2s; }
+.btn-header:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.btn-danger { border-color:rgba(239,68,68,0.2); color:#ef4444; }
+.btn-danger:hover { background:rgba(239,68,68,0.1); }
+
+/* SIDEBAR */
+.sidebar { background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.sidebar-header { padding:14px 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.sidebar-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-bottom:10px; }
+.sidebar-nav { display:flex; gap:2px; padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.sidebar-nav-btn { flex:1; padding:6px 4px; border:none; background:transparent; color:var(--muted); font-size:10px; font-family:'DM Mono',monospace; cursor:pointer; border-radius:6px; transition:all 0.2s; letter-spacing:0.5px; }
+.sidebar-nav-btn.active { background:rgba(74,159,255,0.12); color:var(--accent); }
+.search-box { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; padding:7px 12px; color:var(--text); font-size:12px; font-family:'DM Mono',monospace; outline:none; transition:border-color 0.2s; }
+.search-box:focus { border-color:rgba(74,159,255,0.4); }
+.search-box::placeholder { color:var(--muted); }
+.filter-row { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
+.filter-btn { font-size:10px; padding:3px 9px; border-radius:100px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.15s; font-family:'DM Mono',monospace; }
+.filter-btn.active { background:rgba(74,159,255,0.12); color:var(--accent); border-color:rgba(74,159,255,0.3); }
+.users-count { padding:6px 16px; font-size:10px; color:var(--muted); letter-spacing:1px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.users-list { flex:1; overflow-y:auto; }
+.users-list::-webkit-scrollbar { width:4px; }
+.users-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.user-item { display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; transition:background 0.15s; border-bottom:1px solid rgba(255,255,255,0.03); }
+.user-item:hover { background:rgba(255,255,255,0.03); }
+.user-item.active { background:rgba(74,159,255,0.08); border-left:2px solid var(--accent); padding-left:14px; }
+.user-avatar { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; font-family:'Syne',sans-serif; flex-shrink:0; }
+.avatar-super_admin { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.avatar-educador { background:rgba(74,159,255,0.15); color:#4a9fff; }
+.avatar-aluno { background:rgba(52,211,153,0.10); color:#34d399; }
+.user-item-info { flex:1; min-width:0; }
+.user-item-nome  { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-item-email { font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+.role-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dot-super_admin { background:#fbbf24; }
+.dot-educador { background:#4a9fff; }
+.dot-aluno { background:#34d399; }
+.users-empty { text-align:center; padding:40px 16px; color:var(--muted); font-size:12px; }
+
+/* Grupos na sidebar */
+.grupos-list { flex:1; overflow-y:auto; padding:12px; }
+.curso-bloco { margin-bottom:16px; }
+.curso-nome { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.4); padding:6px 4px; display:flex; align-items:center; justify-content:space-between; }
+.turma-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:8px; cursor:pointer; transition:background 0.15s; margin-bottom:2px; }
+.turma-item:hover { background:rgba(255,255,255,0.04); }
+.turma-item.active { background:rgba(74,159,255,0.1); border-left:2px solid var(--accent); padding-left:8px; }
+.turma-nome { font-size:12px; font-weight:600; }
+.turma-sub  { font-size:10px; color:var(--muted); margin-top:1px; }
+.turma-count { font-size:10px; color:var(--muted); background:rgba(255,255,255,0.05); padding:2px 7px; border-radius:100px; }
+
+/* MAIN */
+.main { display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
+.welcome-screen { flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; color:var(--muted); }
+.welcome-screen .icon-big { font-size:48px; opacity:0.3; }
+.user-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.015); flex-shrink:0; }
+.user-header-info { display:flex; align-items:center; gap:12px; }
+.user-header-avatar { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; font-family:'Syne',sans-serif; }
+.user-header-nome  { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; }
+.user-header-email { font-size:11px; color:var(--muted); margin-top:2px; }
+.role-badge { display:inline-flex; align-items:center; padding:4px 12px; border-radius:100px; font-size:10px; letter-spacing:1px; text-transform:uppercase; font-weight:600; }
+.badge-super_admin { background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
+.badge-educador { background:rgba(74,159,255,0.15); color:#4a9fff; border:1px solid rgba(74,159,255,0.3); }
+.badge-aluno { background:rgba(52,211,153,0.10); color:#34d399; border:1px solid rgba(52,211,153,0.2); }
+.tabs-bar { display:flex; gap:2px; padding:0 24px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.01); flex-shrink:0; overflow-x:auto; }
+.tabs-bar::-webkit-scrollbar { height:0; }
+.tab-btn { padding:12px 16px; border:none; background:transparent; color:var(--muted); font-size:12px; font-family:'DM Mono',monospace; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; white-space:nowrap; }
+.tab-btn:hover { color:rgba(255,255,255,0.7); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-content { flex:1; overflow-y:auto; padding:24px; }
+.tab-content::-webkit-scrollbar { width:4px; }
+.tab-content::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+
+/* COMPONENTES */
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:24px; }
+.metric-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
+.metric-label { font-size:10px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+.metric-value { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; }
+.metric-sub   { font-size:10px; color:var(--muted); margin-top:4px; }
+.section { margin-bottom:28px; }
+.section-title { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-bottom:12px; }
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.section-header .section-title { margin-bottom:0; }
+.data-table { width:100%; border-collapse:collapse; }
+.data-table thead { background:rgba(255,255,255,0.02); }
+.data-table th { text-align:left; padding:10px 14px; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); font-weight:500; }
+.data-table td { padding:10px 14px; font-size:12px; border-top:1px solid rgba(255,255,255,0.03); }
+.data-table tr:hover td { background:rgba(255,255,255,0.015); }
+.table-wrap { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.item-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:8px; }
+.item-card-title { font-size:13px; font-weight:600; margin-bottom:4px; }
+.item-card-sub   { font-size:11px; color:var(--muted); }
+.progress-bar-wrap { background:rgba(255,255,255,0.05); border-radius:100px; height:6px; margin-top:6px; }
+.progress-bar { height:100%; border-radius:100px; background:var(--accent); transition:width 0.5s ease; }
+.tag { display:inline-block; padding:2px 8px; border-radius:100px; font-size:10px; font-weight:600; letter-spacing:0.5px; }
+.tag-done    { background:rgba(52,211,153,0.15);  color:#34d399; }
+.tag-pending { background:rgba(251,191,36,0.12);  color:#fbbf24; }
+.tag-late    { background:rgba(240,124,124,0.12); color:#f07c7c; }
+.materia-chip { display:inline-block; font-size:10px; padding:2px 8px; border-radius:6px; background:rgba(255,255,255,0.06); color:var(--muted); }
+.role-select { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:5px 12px; border-radius:8px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; outline:none; }
+.empty-state { text-align:center; padding:48px 24px; color:var(--muted); font-size:12px; }
+.empty-state .empty-icon { font-size:32px; opacity:0.3; margin-bottom:10px; }
+.spinner-wrap { text-align:center; padding:48px; color:var(--muted); font-size:12px; }
+.rotina-grid { display:grid; grid-template-columns:50px repeat(7,1fr); gap:2px; font-size:10px; }
+.rotina-header { text-align:center; padding:6px 2px; color:var(--muted); font-weight:600; letter-spacing:1px; }
+.rotina-hora   { color:var(--muted); padding:4px 6px; text-align:right; line-height:24px; }
+.rotina-slot   { min-height:24px; border-radius:4px; background:rgba(255,255,255,0.02); border:1px solid transparent; padding:3px 5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.rotina-slot.filled { background:rgba(74,159,255,0.12); border-color:rgba(74,159,255,0.2); color:var(--text); }
+.bar-chart { display:flex; align-items:flex-end; gap:6px; height:80px; margin-top:8px; }
+.bar-col   { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.bar       { width:100%; border-radius:4px 4px 0 0; background:var(--accent); opacity:0.7; min-height:2px; }
+.bar-label { font-size:9px; color:var(--muted); }
+#toast { position:fixed; bottom:24px; right:24px; z-index:9999; padding:12px 20px; border-radius:12px; font-size:12px; display:none; animation:slideUp 0.3s ease; }
+@keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* MOBILE */
+.btn-menu { display:none; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); width:36px; height:36px; border-radius:8px; cursor:pointer; font-size:16px; align-items:center; justify-content:center; flex-shrink:0; }
+.btn-back-sidebar { display:none; align-items:center; gap:6px; background:transparent; border:none; color:var(--accent); font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; padding:10px 16px; border-bottom:1px solid var(--border); width:100%; text-align:left; }
+#sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:49; backdrop-filter:blur(2px); }
+#sidebar-overlay.visible { display:block; }
+@media (max-width:768px) {
+  .layout { grid-template-columns:1fr !important; grid-template-rows:52px 1fr !important; }
+  .header { padding:0 12px; }
+  .header-badge-text { display:none; }
+  .btn-header { padding:6px 10px; font-size:10px; }
+  .btn-voltar-text { display:none; }
+  .btn-menu { display:flex; }
+  .sidebar { position:fixed; top:52px; left:0; bottom:0; width:280px; z-index:50; transform:translateX(-100%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); box-shadow:4px 0 24px rgba(0,0,0,0.4); }
+  .sidebar.open { transform:translateX(0); }
+  .main { grid-column:1/-1; }
+  .btn-back-sidebar { display:flex; }
+  .user-header { padding:12px 16px; flex-wrap:wrap; gap:8px; }
+  .tabs-bar { padding:0 12px; }
+  .tab-content { padding:16px; }
+  .metrics-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .metric-value { font-size:20px; }
+  .table-wrap { overflow-x:auto; }
+  #toast { left:16px; right:16px; text-align:center; }
+}
+.access-denied { flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; padding:40px; text-align:center; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
+.modal-overlay.hidden { display:none; }
+.modal-box { background:#0d1117; border:1px solid var(--border); border-radius:18px; padding:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; }
+.modal-box::-webkit-scrollbar { width:4px; }
+.modal-box::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+.modal-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:800; margin-bottom:20px; line-height:1.3; }
+.form-group { margin-bottom:16px; }
+.form-label { display:block; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.form-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-size:13px; font-family:'DM Mono',monospace; outline:none; transition:border-color 0.2s; }
+.form-input:focus { border-color:rgba(74,159,255,0.4); }
+.form-select { width:100%; background:#0d1117; border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-size:12px; font-family:'DM Mono',monospace; outline:none; cursor:pointer; }
+.form-select option { background:#0d1117; }
+.cor-picker { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+.cor-btn { width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:all 0.15s; }
+.cor-btn.selected { border-color:#fff; transform:scale(1.2); box-shadow:0 0 0 2px rgba(255,255,255,0.2); }
+.modal-actions { display:flex; gap:10px; margin-top:24px; justify-content:flex-end; }
+.btn-modal-cancel { background:transparent; border:1px solid var(--border); color:var(--muted); padding:9px 20px; border-radius:10px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; }
+.btn-modal-cancel:hover { border-color:rgba(255,255,255,0.2); color:#fff; }
+.btn-modal-save { background:var(--accent); border:none; color:#fff; padding:9px 20px; border-radius:10px; font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; font-weight:600; }
+.btn-modal-save:hover { opacity:0.85; }
+.btn-modal-save:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-add { background:rgba(74,159,255,0.1); border:1px solid rgba(74,159,255,0.25); color:var(--accent); padding:6px 14px; border-radius:8px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.2s; }
+.btn-add:hover { background:rgba(74,159,255,0.2); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="roles.js"></script>
+</head>
+<body>
+
+<div class="layout" id="layout" style="display:none">
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-menu" onclick="toggleSidebar()">&#9776;</button>
+      <span class="logo">StudyOS</span>
+      <span class="role-pill" id="header-role-pill"></span>
+      <span style="font-size:11px;color:var(--muted);letter-spacing:1px" id="header-panel-label" class="header-badge-text"></span>
+    </div>
+    <div class="header-right">
+      <button class="btn-header" onclick="window.location.href='studyos.html'">&larr; <span class="btn-voltar-text">Voltar ao app</span></button>
+      <button class="btn-header btn-danger" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <!-- Navegação Alunos / Grupos -->
+    <div class="sidebar-nav">
+      <button class="sidebar-nav-btn active" id="nav-btn-alunos" onclick="mostrarPainelAlunos()">Alunos</button>
+      <button class="sidebar-nav-btn" id="nav-btn-grupos" onclick="mostrarPainelGrupos()">Grupos</button>
+    </div>
+
+    <!-- Painel Alunos -->
+    <div id="painel-alunos">
+      <div class="sidebar-header" style="border-bottom:none;padding-bottom:6px">
+        <input class="search-box" type="text" id="search-input" placeholder="Buscar por nome ou email..." oninput="filtrarUsuarios()" />
+        <div class="filter-row" id="filter-row"></div>
+      </div>
+      <div class="users-count" id="users-count">Carregando...</div>
+      <div class="users-list" id="users-list"><div class="spinner-wrap">Carregando...</div></div>
+    </div>
+
+    <!-- Painel Grupos -->
+    <div id="painel-grupos" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div style="padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button class="btn-add" style="width:100%;justify-content:center;display:flex" onclick="abrirModalNovasTurma()">+ Nova Turma</button>
+      </div>
+      <div class="grupos-list" id="grupos-list"><div class="spinner-wrap">Carregando...</div></div>
+    </div>
+  </aside>
+
+  <main class="main" id="main-area">
+    <button class="btn-back-sidebar" id="btn-back-sidebar" onclick="closeSidebar();" style="display:none">&larr; Ver lista</button>
+
+    <!-- Welcome -->
+    <div class="welcome-screen" id="welcome-screen">
+      <div class="icon-big">&#9678;</div>
+      <p>Selecione um aluno ou uma turma na lista</p>
+    </div>
+
+    <!-- Painel do aluno -->
+    <div id="user-panel" style="display:none;flex-direction:column;height:100%">
+      <div class="user-header">
+        <div class="user-header-info">
+          <div class="user-header-avatar" id="panel-avatar"></div>
+          <div>
+            <div class="user-header-nome" id="panel-nome">-</div>
+            <div class="user-header-email" id="panel-email">-</div>
+          </div>
+          <span class="role-badge" id="panel-role-badge"></span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:right">
+          <div>Cadastrado em</div>
+          <div id="panel-created" style="color:var(--text)">-</div>
+        </div>
+      </div>
+      <div class="tabs-bar" id="tabs-bar"></div>
+      <div class="tab-content" id="tab-content"><div class="spinner-wrap">Carregando...</div></div>
+    </div>
+
+    <!-- Painel da turma -->
+    <div id="turma-panel" style="display:none;flex-direction:column;height:100%">
+      <div class="user-header">
+        <div class="user-header-info">
+          <div class="user-header-avatar" style="background:rgba(74,159,255,0.15);color:#4a9fff" id="turma-panel-icon">T</div>
+          <div>
+            <div class="user-header-nome" id="turma-panel-nome">-</div>
+            <div class="user-header-email" id="turma-panel-sub">-</div>
+          </div>
+        </div>
+        <div id="turma-panel-count" style="font-size:11px;color:var(--muted)"></div>
+      </div>
+      <div class="tabs-bar">
+        <button class="tab-btn active" id="ttab-btn-membros"  onclick="mudarAbaTurma('membros')">Membros</button>
+        <button class="tab-btn"        id="ttab-btn-tarefas"  onclick="mudarAbaTurma('tarefas')">Criar Tarefa em Lote</button>
+        <button class="tab-btn"        id="ttab-btn-rotina"   onclick="mudarAbaTurma('rotina')">Prescrever Rotina em Lote</button>
+      </div>
+      <div class="tab-content" id="turma-tab-content"><div class="spinner-wrap">Carregando...</div></div>
+    </div>
+  </main>
+</div>
+
+<div class="access-denied" id="access-denied" style="display:none">
+  <div style="font-size:40px">&#128274;</div>
+  <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Acesso nao autorizado</div>
+  <div style="font-size:12px;color:var(--muted)">Esta area e exclusiva para Educadores e Super Admins.</div>
+  <button onclick="window.location.href='studyos.html'" style="margin-top:20px;padding:12px 24px;border-radius:12px;background:linear-gradient(135deg,#4a9fff,#6366f1);border:none;color:#fff;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;font-size:14px;">&larr; Voltar ao app</button>
+</div>
+
+<div id="loading-screen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#080a0f;flex-direction:column;gap:12px;color:#4a5568;font-size:12px;">
+  <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff">StudyOS</div>
+  <div>Verificando permissoes...</div>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<script>
+var currentProfile = null;
+var allUsers       = [];
+var filteredUsers  = [];
+var selectedUser   = null;
+var filterRole     = 'all';
+var CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
+
+// Dados de grupos
+var todosCursos = [];
+var todasTurmas = [];
+var selectedTurma = null;
+
+// Horarios fixos disponiveis
+var HORARIOS_FIXOS = [
+  { nome: 'Segunda e Quarta', dias: ['seg','qua'], inicio: '08:00', fim: '20:00' },
+  { nome: 'Terca',            dias: ['ter'],       inicio: '08:00', fim: '21:00' },
+  { nome: 'Quinta e Sexta',   dias: ['qui','sex'], inicio: '08:00', fim: '18:00' },
+  { nome: 'Sabado',           dias: ['sab'],       inicio: '08:00', fim: '16:00' },
+];
+
+// ===================================================================
+// INICIALIZACAO
+// ===================================================================
+(async function init() {
+  try {
+    if (!window._sb) throw new Error('Supabase nao inicializado');
+    var sb = window._sb;
+    var sess = await sb.auth.getSession();
+    if (sess.error) throw sess.error;
+    if (!sess.data.session) { window.location.href = 'index.html'; return; }
+
+    currentProfile = await StudyRoles.getUserProfile();
+    if (!currentProfile) { window.location.href = 'index.html'; return; }
+
+    if ((StudyRoles.ROLE_LEVEL[currentProfile.role]||0) < 2) {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('access-denied').style.display  = 'flex';
+      return;
+    }
+
+    var pill = document.getElementById('header-role-pill');
+    pill.textContent = currentProfile.role === 'super_admin' ? 'Super Admin' : 'Educador';
+    pill.className   = 'role-pill pill-' + currentProfile.role;
+    document.getElementById('header-panel-label').textContent =
+      currentProfile.role === 'super_admin' ? 'Painel Super Admin' : 'Painel Educador';
+
+    montarFiltros();
+    await Promise.all([carregarUsuarios(), carregarGrupos()]);
+
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('layout').style.display = 'grid';
+  } catch(err) {
+    console.error('[admin] Erro:', err);
+    var ls = document.getElementById('loading-screen');
+    ls.innerHTML =
+      '<div style="font-family:\'Syne\',sans-serif;font-size:20px;font-weight:800;color:#fff">StudyOS</div>' +
+      '<div style="color:#f07c7c;margin-top:4px">Erro: ' + err.message + '</div>' +
+      '<button onclick="location.reload()" style="margin-top:16px;padding:10px 22px;border-radius:10px;background:rgba(74,159,255,0.15);border:1px solid rgba(74,159,255,0.3);color:#4a9fff;cursor:pointer;font-family:\'DM Mono\',monospace;font-size:12px;">Tentar novamente</button>';
+  }
+})();
+
+// ===================================================================
+// SIDEBAR — navegacao entre Alunos e Grupos
+// ===================================================================
+function mostrarPainelAlunos() {
+  document.getElementById('nav-btn-alunos').classList.add('active');
+  document.getElementById('nav-btn-grupos').classList.remove('active');
+  document.getElementById('painel-alunos').style.display = '';
+  document.getElementById('painel-grupos').style.display = 'none';
+}
+
+function mostrarPainelGrupos() {
+  document.getElementById('nav-btn-grupos').classList.add('active');
+  document.getElementById('nav-btn-alunos').classList.remove('active');
+  document.getElementById('painel-alunos').style.display = 'none';
+  document.getElementById('painel-grupos').style.display = 'flex';
+  renderGruposSidebar();
+}
+
+// ===================================================================
+// ALUNOS
+// ===================================================================
+function montarFiltros() {
+  var row = document.getElementById('filter-row');
+  if (currentProfile.role === 'super_admin') {
+    row.innerHTML =
+      '<button class="filter-btn active" onclick="setFilter(\'all\',this)">Todos</button>' +
+      '<button class="filter-btn" onclick="setFilter(\'aluno\',this)">Alunos</button>' +
+      '<button class="filter-btn" onclick="setFilter(\'educador\',this)">Educadores</button>' +
+      '<button class="filter-btn" onclick="setFilter(\'super_admin\',this)">Admins</button>';
+  } else {
+    filterRole = 'aluno';
+  }
+}
+
+function setFilter(role, btn) {
+  filterRole = role;
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  filtrarUsuarios();
+}
+
+async function carregarUsuarios() {
+  var sb = window._sb;
+  var q = sb.from('profiles').select('id,nome,email,role,created_at').order('nome');
+  if (currentProfile.role === 'educador') q = q.eq('role','aluno');
+  var r = await q;
+  if (r.error) { showToast('Erro ao carregar usuarios: '+r.error.message,'error'); return; }
+  allUsers = r.data||[];
+  filtrarUsuarios();
+}
+
+function filtrarUsuarios() {
+  var termo = (document.getElementById('search-input').value||'').toLowerCase();
+  filteredUsers = allUsers.filter(function(u) {
+    var pR = filterRole==='all'||u.role===filterRole;
+    var pT = !termo||(u.nome||'').toLowerCase().indexOf(termo)!==-1||(u.email||'').toLowerCase().indexOf(termo)!==-1;
+    return pR&&pT;
+  });
+  renderUsuarios();
+}
+
+function renderUsuarios() {
+  var list  = document.getElementById('users-list');
+  var count = document.getElementById('users-count');
+  count.textContent = filteredUsers.length+' usuario(s)';
+  if (!filteredUsers.length) { list.innerHTML='<div class="users-empty">Nenhum usuario encontrado</div>'; return; }
+  list.innerHTML = filteredUsers.map(function(u) {
+    var ini = (u.nome||u.email||'?').charAt(0).toUpperCase();
+    var act = selectedUser&&selectedUser.id===u.id?'active':'';
+    return '<div class="user-item '+act+'" onclick="selecionarUsuario(\''+u.id+'\')">' +
+      '<div class="user-avatar avatar-'+u.role+'">'+ini+'</div>' +
+      '<div class="user-item-info"><div class="user-item-nome">'+(u.nome||'(sem nome)')+'</div><div class="user-item-email">'+(u.email||'-')+'</div></div>' +
+      '<div class="role-dot dot-'+u.role+'" title="'+u.role+'"></div></div>';
+  }).join('');
+}
+
+async function selecionarUsuario(userId) {
+  selectedUser = allUsers.find(function(u){ return u.id===userId; });
+  if (!selectedUser) return;
+  selectedTurma = null;
+  renderUsuarios();
+
+  document.getElementById('welcome-screen').style.display  = 'none';
+  document.getElementById('turma-panel').style.display     = 'none';
+  var panel = document.getElementById('user-panel');
+  panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.height = '100%';
+
+  var ini = (selectedUser.nome||selectedUser.email||'?').charAt(0).toUpperCase();
+  var av  = document.getElementById('panel-avatar');
+  av.textContent = ini; av.className = 'user-header-avatar avatar-'+selectedUser.role;
+  document.getElementById('panel-nome').textContent    = selectedUser.nome||'(sem nome)';
+  document.getElementById('panel-email').textContent   = selectedUser.email||'-';
+  document.getElementById('panel-created').textContent = new Date(selectedUser.created_at).toLocaleDateString('pt-BR');
+  var badge = document.getElementById('panel-role-badge');
+  badge.textContent = selectedUser.role.replace('_',' '); badge.className = 'role-badge badge-'+selectedUser.role;
+  montarAbas();
+  if (window.innerWidth<=768) { closeSidebar(); document.getElementById('btn-back-sidebar').style.display='flex'; }
+}
+
+function montarAbas() {
+  var abas = [
+    {id:'visao-geral',      label:'Visao Geral'},
+    {id:'tarefas',          label:'Tarefas'},
+    {id:'notas',            label:'Anotacoes'},
+    {id:'progresso',        label:'Progresso'},
+    {id:'rotina',           label:'Rotina'},
+    {id:'rotina-prescrita', label:'Prescrever Rotina'},
+    {id:'relatorio',        label:'Relatorio'},
+    {id:'vinculo',          label:'Vinculo e Materias'},
+  ];
+  if (currentProfile.role==='super_admin') abas.push({id:'gestao',label:'Gestao'});
+  document.getElementById('tabs-bar').innerHTML = abas.map(function(a) {
+    return '<button class="tab-btn '+(a.id==='visao-geral'?'active':'')+'" id="tab-btn-'+a.id+'" onclick="mudarAba(\''+a.id+'\')">'+a.label+'</button>';
+  }).join('');
+  mudarAba('visao-geral');
+}
+
+async function mudarAba(tabId) {
+  document.querySelectorAll('#tabs-bar .tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.getElementById('tab-btn-'+tabId);
+  if (btn) btn.classList.add('active');
+  document.getElementById('tab-content').innerHTML = '<div class="spinner-wrap">Carregando...</div>';
+  var rotas = {
+    'visao-geral':renderVisaoGeral,'tarefas':renderTarefas,'notas':renderNotas,
+    'progresso':renderProgresso,'rotina':renderRotina,'rotina-prescrita':renderRotinaPrescrita,
+    'relatorio':renderRelatorio,'gestao':renderGestao,'vinculo':renderVinculo,
+  };
+  if (rotas[tabId]) await rotas[tabId]();
+}
+
+// ===================================================================
+// GRUPOS — carregamento e sidebar
+// ===================================================================
+async function carregarGrupos() {
+  var sb = window._sb;
+  var r1 = await sb.from('cursos').select('id,nome').order('nome');
+  var r2 = await sb.from('turmas').select('id,curso_id,nome,dias,horario_inicio,horario_fim').order('nome');
+  todosCursos = r1.data||[];
+  todasTurmas = r2.data||[];
+}
+
+function renderGruposSidebar() {
+  var el = document.getElementById('grupos-list');
+  if (!todosCursos.length) { el.innerHTML='<div class="users-empty">Nenhum curso encontrado</div>'; return; }
+  el.innerHTML = todosCursos.map(function(curso) {
+    var turmas = todasTurmas.filter(function(t){ return t.curso_id===curso.id; });
+    return '<div class="curso-bloco">' +
+      '<div class="curso-nome">'+curso.nome+'</div>' +
+      (turmas.length ? turmas.map(function(t) {
+        var act = selectedTurma&&selectedTurma.id===t.id?'active':'';
+        return '<div class="turma-item '+act+'" onclick="selecionarTurma(\''+t.id+'\')">' +
+          '<div><div class="turma-nome">'+t.nome+'</div><div class="turma-sub">'+t.horario_inicio.substring(0,5)+' — '+t.horario_fim.substring(0,5)+'</div></div>' +
+          '<span class="turma-count" id="tcount-'+t.id+'">...</span>' +
+        '</div>';
+      }).join('') : '<div style="font-size:11px;color:var(--muted);padding:4px 10px">Nenhuma turma</div>') +
+    '</div>';
+  }).join('');
+  // Carrega contagem de membros
+  carregarContagemTurmas();
+}
+
+async function carregarContagemTurmas() {
+  var sb = window._sb;
+  var r = await sb.from('turma_membros').select('turma_id');
+  var contagem = {};
+  (r.data||[]).forEach(function(m){ contagem[m.turma_id]=(contagem[m.turma_id]||0)+1; });
+  todasTurmas.forEach(function(t) {
+    var el = document.getElementById('tcount-'+t.id);
+    if (el) el.textContent = (contagem[t.id]||0)+' aluno(s)';
+  });
+}
+
+async function selecionarTurma(turmaId) {
+  selectedTurma = todasTurmas.find(function(t){ return t.id===turmaId; });
+  if (!selectedTurma) return;
+  selectedUser = null;
+  renderGruposSidebar();
+
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('user-panel').style.display     = 'none';
+  var panel = document.getElementById('turma-panel');
+  panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.height = '100%';
+
+  var curso = todosCursos.find(function(c){ return c.id===selectedTurma.curso_id; });
+  document.getElementById('turma-panel-nome').textContent = (curso?curso.nome+' — ':'')+selectedTurma.nome;
+  document.getElementById('turma-panel-sub').textContent  = selectedTurma.horario_inicio.substring(0,5)+' as '+selectedTurma.horario_fim.substring(0,5);
+
+  if (window.innerWidth<=768) { closeSidebar(); document.getElementById('btn-back-sidebar').style.display='flex'; }
+  await mudarAbaTurma('membros');
+}
+
+async function mudarAbaTurma(tabId) {
+  document.querySelectorAll('#turma-panel .tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.getElementById('ttab-btn-'+tabId);
+  if (btn) btn.classList.add('active');
+  document.getElementById('turma-tab-content').innerHTML = '<div class="spinner-wrap">Carregando...</div>';
+  if (tabId==='membros')  await renderTurmaMembros();
+  if (tabId==='tarefas')  renderTurmaTarefaForm();
+  if (tabId==='rotina')   renderTurmaRotinaForm();
+}
+
+// ===================================================================
+// ABA TURMA — Membros
+// ===================================================================
+async function renderTurmaMembros() {
+  var sb = window._sb;
+  var r = await sb.from('turma_membros').select('user_id').eq('turma_id', selectedTurma.id);
+  var ids = (r.data||[]).map(function(m){ return m.user_id; });
+  document.getElementById('turma-panel-count').textContent = ids.length+' membro(s)';
+
+  var membros = allUsers.filter(function(u){ return ids.indexOf(u.id)!==-1; });
+  var naoMembros = allUsers.filter(function(u){ return u.role==='aluno'&&ids.indexOf(u.id)===-1; });
+
+  var tabelaMembros = membros.length ?
+    '<div class="table-wrap"><table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th></th></tr></thead><tbody>' +
+    membros.map(function(u) {
+      return '<tr><td>'+(u.nome||'(sem nome)')+'</td><td style="color:var(--muted)">'+u.email+'</td>' +
+        '<td><button onclick="removerMembro(\''+u.id+'\')" style="font-size:10px;padding:3px 10px;background:rgba(240,124,124,0.1);border:1px solid rgba(240,124,124,0.2);color:#f07c7c;border-radius:6px;cursor:pointer;font-family:\'DM Mono\',monospace">Remover</button></td></tr>';
+    }).join('')+'</tbody></table></div>' :
+    '<div style="color:var(--muted);font-size:12px;padding:8px 0">Nenhum aluno nesta turma ainda.</div>';
+
+  var selectAdd = naoMembros.length ?
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+    '<select id="select-add-membro" class="form-select" style="flex:1;min-width:200px"><option value="">Selecionar aluno...</option>' +
+    naoMembros.map(function(u){ return '<option value="'+u.id+'">'+(u.nome||u.email)+'</option>'; }).join('') +
+    '</select><button class="btn-add" onclick="adicionarMembro()">+ Adicionar</button></div>' :
+    '<div style="font-size:11px;color:var(--muted)">Todos os alunos ja estao em uma turma deste curso.</div>';
+
+  document.getElementById('turma-tab-content').innerHTML =
+    '<div class="section"><div class="section-header"><div class="section-title">Membros da turma</div></div>' + tabelaMembros + '</div>' +
+    '<div class="section"><div class="section-title">Adicionar aluno</div>' + selectAdd + '</div>';
+}
+
+async function adicionarMembro() {
+  var sb = window._sb;
+  var userId = document.getElementById('select-add-membro').value;
+  if (!userId) { showToast('Selecione um aluno','error'); return; }
+  var r = await sb.from('turma_membros').insert({turma_id:selectedTurma.id, curso_id:selectedTurma.curso_id, user_id:userId});
+  if (r.error) { showToast('Erro: '+r.error.message,'error'); return; }
+  showToast('Aluno adicionado a turma!');
+  await renderTurmaMembros();
+  carregarContagemTurmas();
+}
+
+async function removerMembro(userId) {
+  var sb = window._sb;
+  var r = await sb.from('turma_membros').delete().eq('turma_id',selectedTurma.id).eq('user_id',userId);
+  if (r.error) { showToast('Erro: '+r.error.message,'error'); return; }
+  showToast('Aluno removido da turma.');
+  await renderTurmaMembros();
+  carregarContagemTurmas();
+}
+
+// ===================================================================
+// ABA TURMA — Criar Tarefa em Lote
+// ===================================================================
+async function renderTurmaTarefaForm() {
+  var sb  = window._sb;
+  // Pega materias comuns (usa as do primeiro membro, se houver)
+  var r = await sb.from('turma_membros').select('user_id').eq('turma_id',selectedTurma.id);
+  var ids = (r.data||[]).map(function(m){ return m.user_id; });
+  var count = ids.length;
+
+  document.getElementById('turma-tab-content').innerHTML =
+    '<div class="section"><div class="section-title">Criar tarefa para todos os '+count+' alunos da turma</div>' +
+    '<div class="item-card">' +
+    '<div class="form-group"><label class="form-label">Descricao *</label><input class="form-input" id="lt-desc" type="text" placeholder="Ex: Estudar Capitulo 3..."></div>' +
+    '<div class="form-group"><label class="form-label">Data</label><input class="form-input" id="lt-data" type="date"></div>' +
+    '<div class="form-group"><label class="form-label">Hora</label><input class="form-input" id="lt-hora" type="time"></div>' +
+    '<div class="form-group"><label class="form-label">Prioridade</label><select class="form-select" id="lt-prior"><option value="0">Normal</option><option value="1">Media</option><option value="2">Alta</option></select></div>' +
+    '<div style="margin-top:8px"><button class="btn-modal-save" onclick="salvarTarefaEmLote()" id="btn-lote-tar">Criar para os '+count+' alunos</button></div>' +
+    '</div></div>';
+}
+
+async function salvarTarefaEmLote() {
+  var sb   = window._sb;
+  var desc = (document.getElementById('lt-desc').value||'').trim();
+  if (!desc) { showToast('Descricao obrigatoria','error'); return; }
+  var data  = document.getElementById('lt-data').value||null;
+  var hora  = document.getElementById('lt-hora').value||null;
+  var prior = parseInt(document.getElementById('lt-prior').value)||0;
+
+  var r = await sb.from('turma_membros').select('user_id').eq('turma_id',selectedTurma.id);
+  var ids = (r.data||[]).map(function(m){ return m.user_id; });
+  if (!ids.length) { showToast('Nenhum aluno nesta turma','error'); return; }
+
+  var btn = document.getElementById('btn-lote-tar');
+  btn.disabled=true; btn.textContent='Salvando...';
+
+  var registros = ids.map(function(uid) {
+    return {user_id:uid, descricao:desc, data:data, hora:hora, prior:prior, done:false};
+  });
+  var ins = await sb.from('tarefas').insert(registros);
+  if (ins.error) { showToast('Erro: '+ins.error.message,'error'); btn.disabled=false; btn.textContent='Criar para os '+ids.length+' alunos'; return; }
+  showToast('Tarefa criada para '+ids.length+' alunos!');
+  btn.disabled=false; btn.textContent='Criar para os '+ids.length+' alunos';
+}
+
+// ===================================================================
+// ABA TURMA — Prescrever Rotina em Lote
+// ===================================================================
+var _loteRotinaMap = {};
+var _loteMateriaAtiva = null;
+var _CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
+
+function renderTurmaRotinaForm() {
+  var DIAS  = selectedTurma.dias||[];
+  var DLBL  = {seg:'Seg',ter:'Ter',qua:'Qua',qui:'Qui',sex:'Sex',sab:'Sab',dom:'Dom'};
+  var horas = [];
+  // Usa os horarios da turma como range
+  var hIni  = parseInt((selectedTurma.horario_inicio||'08:00').split(':')[0]);
+  var hFim  = parseInt((selectedTurma.horario_fim||'20:00').split(':')[0]);
+  for (var h=hIni;h<=hFim;h++) for (var m=0;m<60;m+=15)
+    horas.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
+
+  _loteRotinaMap = {};
+  _loteMateriaAtiva = null;
+
+  var grid = horas.map(function(hora) {
+    return '<div class="rotina-hora">'+hora+'</div>' +
+      DIAS.map(function(dia) {
+        var key=dia+'-'+hora;
+        return '<div class="rotina-slot" id="lrs-'+key+'" onclick="loteToggleSlot(\''+key+'\')" style="cursor:pointer" title=""></div>';
+      }).join('') +
+      // Colunas vazias para dias nao pertencentes a turma (visual)
+      ['seg','ter','qua','qui','sex','sab','dom'].filter(function(d){ return DIAS.indexOf(d)===-1; }).map(function(){
+        return '<div class="rotina-slot" style="opacity:0.2"></div>';
+      }).join('');
+  }).join('');
+
+  document.getElementById('turma-tab-content').innerHTML =
+    '<div class="section"><div class="section-title">Prescrever rotina para toda a turma</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">Preencha os slots. Ao salvar, a rotina sera aplicada para todos os alunos da turma.</div>' +
+    '<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Materia ativa (clique nos slots):</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap" id="lote-legenda">' +
+    '<button class="filter-btn active" onclick="loteSelecionarMateria(null)" id="lote-mat-apagar" style="border-color:#f07c7c;color:#f07c7c">x Apagar</button>' +
+    '<button class="filter-btn" onclick="loteSelecionarMateria(\'LIVRE\')" id="lote-mat-livre">Livre</button>' +
+    '</div></div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="lote-ativa-label">Modo apagar ativo</div>' +
+    '<div style="overflow-x:auto"><div class="rotina-grid" style="min-width:300px;grid-template-columns:50px repeat('+DIAS.length+',1fr)">' +
+    '<div></div>'+DIAS.map(function(d){ return '<div class="rotina-header">'+(DLBL[d]||d)+'</div>'; }).join('') +
+    grid +
+    '</div></div>' +
+    '<div style="margin-top:16px"><button class="btn-modal-save" onclick="salvarRotinaEmLote()" id="btn-lote-rot">Salvar rotina para a turma</button></div>' +
+    '</div>';
+}
+
+function loteSelecionarMateria(matId) {
+  _loteMateriaAtiva = matId;
+  document.querySelectorAll('#lote-legenda .filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  var lbl = document.getElementById('lote-ativa-label');
+  if (!matId) { document.getElementById('lote-mat-apagar').classList.add('active'); if(lbl) lbl.textContent='Modo apagar ativo'; }
+  else if (matId==='LIVRE') { document.getElementById('lote-mat-livre').classList.add('active'); if(lbl) lbl.textContent='Materia ativa: Livre'; }
+  else { var b=document.getElementById('lote-mat-'+matId); if(b) b.classList.add('active'); if(lbl) lbl.textContent='Materia ativa: '+matId; }
+}
+
+function loteToggleSlot(key) {
+  var el = document.getElementById('lrs-'+key);
+  if (!el) return;
+  if (_loteMateriaAtiva === null) {
+    delete _loteRotinaMap[key];
+    el.textContent=''; el.classList.remove('filled'); el.style.background=''; el.style.borderColor='';
+  } else {
+    var label = _loteMateriaAtiva==='LIVRE'?'Livre':_loteMateriaAtiva;
+    _loteRotinaMap[key] = _loteMateriaAtiva;
+    el.textContent = label.substring(0,5);
+    el.classList.add('filled');
+    el.style.background = 'rgba(74,159,255,0.15)'; el.style.borderColor = 'rgba(74,159,255,0.3)';
+  }
+}
+
+async function salvarRotinaEmLote() {
+  var sb  = window._sb;
+  var r   = await sb.from('turma_membros').select('user_id').eq('turma_id',selectedTurma.id);
+  var ids = (r.data||[]).map(function(m){ return m.user_id; });
+  if (!ids.length) { showToast('Nenhum aluno nesta turma','error'); return; }
+  var slots = Object.entries(_loteRotinaMap);
+  if (!slots.length) { showToast('Nenhum slot preenchido','error'); return; }
+
+  var btn = document.getElementById('btn-lote-rot');
+  btn.disabled=true; btn.textContent='Salvando...';
+
+  // Para cada aluno: deletar rotina prescrita existente e inserir nova
+  for (var i=0;i<ids.length;i++) {
+    var uid = ids[i];
+    await sb.from('rotina_prescrita').delete().eq('aluno_id',uid);
+    var registros = slots.map(function(e){
+      return {id:uid+'-'+e[0], aluno_id:uid, prescrita_por:currentProfile.id, slot_key:e[0], materia:e[1]==='LIVRE'?null:e[1]};
+    });
+    var ins = await sb.from('rotina_prescrita').insert(registros);
+    if (ins.error) { showToast('Erro ao salvar para aluno '+uid+': '+ins.error.message,'error'); btn.disabled=false; btn.textContent='Salvar rotina para a turma'; return; }
+  }
+  showToast('Rotina aplicada para '+ids.length+' alunos!');
+  btn.disabled=false; btn.textContent='Salvar rotina para a turma';
+}
+
+// ===================================================================
+// ABA: VINCULO E MATERIAS (perfil individual do aluno)
+// ===================================================================
+async function renderVinculo() {
+  var sb  = window._sb;
+  var uid = selectedUser.id;
+  var res = await Promise.all([
+    sb.from('cursos').select('id,nome').order('nome'),
+    sb.from('turmas').select('id,curso_id,nome,horario_inicio,horario_fim').order('nome'),
+    sb.from('turma_membros').select('turma_id,curso_id').eq('user_id',uid),
+    sb.from('materias').select('id,nome,cor').eq('user_id',uid),
+  ]);
+  var cursos   = res[0].data||[];
+  var turmas   = res[1].data||[];
+  var vinculos = res[2].data||[];
+  var materias = res[3].data||[];
+
+  // Monta mapa curso -> turma atual do aluno
+  var turmaAtualPorCurso = {};
+  vinculos.forEach(function(v){ turmaAtualPorCurso[v.curso_id] = v.turma_id; });
+
+  var cursosHtml = cursos.map(function(curso) {
+    var turmasDoCurso = turmas.filter(function(t){ return t.curso_id===curso.id; });
+    var atual = turmaAtualPorCurso[curso.id]||'';
+    return '<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">'+curso.nome+'</div>' +
+      '<div style="display:flex;gap:10px;align-items:center">' +
+      '<select class="form-select" id="vinculo-'+curso.id+'" style="flex:1">' +
+      '<option value="">— Sem turma —</option>' +
+      turmasDoCurso.map(function(t){
+        return '<option value="'+t.id+'"'+(atual===t.id?' selected':'')+'>'+t.nome+' ('+t.horario_inicio.substring(0,5)+'-'+t.horario_fim.substring(0,5)+')</option>';
+      }).join('') +
+      '</select>' +
+      '<button class="btn-add" onclick="salvarVinculo(\''+curso.id+'\')">Salvar</button>' +
+      '</div></div>';
+  }).join('');
+
+  var matsHtml = materias.length
+    ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
+        materias.map(function(m){
+          return '<span class="materia-chip" style="border-left:3px solid '+(CORES[m.cor]||'var(--accent)')+';padding-left:8px">' +
+            m.nome + ' <span onclick="deletarMateria(\''+m.id+'\')" style="cursor:pointer;color:var(--red);margin-left:4px">x</span></span>';
+        }).join('') + '</div>'
+    : '<div style="color:var(--muted);font-size:12px;margin-bottom:12px">Nenhuma materia cadastrada.</div>';
+
+  document.getElementById('tab-content').innerHTML =
+    '<div class="section"><div class="section-title">Turma do aluno</div><div class="item-card">'+cursosHtml+'</div></div>' +
+    '<div class="section">' +
+      '<div class="section-header"><div class="section-title">Materias</div><button class="btn-add" onclick="abrirModalMateria()">+ Nova Materia</button></div>' +
+      matsHtml +
+    '</div>';
+}
+
+async function salvarVinculo(cursoId) {
+  var sb      = window._sb;
+  var uid     = selectedUser.id;
+  var turmaId = document.getElementById('vinculo-'+cursoId).value;
+
+  // Remove vinculo atual neste curso
+  await sb.from('turma_membros').delete().eq('user_id',uid).eq('curso_id',cursoId);
+
+  if (turmaId) {
+    var r = await sb.from('turma_membros').insert({turma_id:turmaId, curso_id:cursoId, user_id:uid});
+    if (r.error) { showToast('Erro: '+r.error.message,'error'); return; }
+    showToast('Turma vinculada com sucesso!');
+  } else {
+    showToast('Vinculo removido.');
+  }
+  await carregarGrupos();
+}
+
+async function deletarMateria(materiaId) {
+  var sb = window._sb;
+  var r  = await sb.from('materias').delete().eq('id',materiaId).eq('user_id',selectedUser.id);
+  if (r.error) { showToast('Erro: '+r.error.message,'error'); return; }
+  showToast('Materia removida.');
+  await renderVinculo();
+}
+
+// ===================================================================
+// NOVA TURMA
+// ===================================================================
+function abrirModalNovasTurma() {
+  var cursosOps = todosCursos.map(function(c){ return '<option value="'+c.id+'">'+c.nome+'</option>'; }).join('');
+  var horariosOps = HORARIOS_FIXOS.map(function(h,i){ return '<option value="'+i+'">'+h.nome+' ('+h.inicio+'-'+h.fim+')</option>'; }).join('');
+
+  document.getElementById('modal-box').innerHTML =
+    '<div class="modal-title">Nova Turma</div>' +
+    '<div class="form-group"><label class="form-label">Curso *</label><select class="form-select" id="nt-curso">'+cursosOps+'</select></div>' +
+    '<div class="form-group"><label class="form-label">Horario *</label><select class="form-select" id="nt-horario">'+horariosOps+'</select></div>' +
+    '<div class="form-group"><label class="form-label">Nome personalizado (opcional)</label><input class="form-input" id="nt-nome" type="text" placeholder="Deixe vazio para usar o horario como nome"></div>' +
+    '<div class="modal-actions"><button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button><button class="btn-modal-save" id="btn-save-nt" onclick="salvarNovaTurma()">Criar Turma</button></div>';
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+async function salvarNovaTurma() {
+  var sb      = window._sb;
+  var cursoId = document.getElementById('nt-curso').value;
+  var hIdx    = parseInt(document.getElementById('nt-horario').value);
+  var nomeCustom = (document.getElementById('nt-nome').value||'').trim();
+  var h       = HORARIOS_FIXOS[hIdx];
+  var nome    = nomeCustom || h.nome;
+  var btn     = document.getElementById('btn-save-nt');
+  btn.disabled=true; btn.textContent='Criando...';
+
+  var r = await sb.from('turmas').insert({curso_id:cursoId, nome:nome, dias:h.dias, horario_inicio:h.inicio, horario_fim:h.fim, criado_por:currentProfile.id});
+  if (r.error) { showToast('Erro: '+r.error.message,'error'); btn.disabled=false; btn.textContent='Criar Turma'; return; }
+  showToast('Turma "'+nome+'" criada!');
+  fecharModal();
+  await carregarGrupos();
+  renderGruposSidebar();
+}
+
+// ===================================================================
+// ABAS INDIVIDUAIS DO ALUNO
+// ===================================================================
+async function renderVisaoGeral() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([
+    sb.from('tarefas').select('id,done,data').eq('user_id',uid),
+    sb.from('notas').select('id').eq('user_id',uid),
+    sb.from('pomodoro_log').select('mins,data,materia').eq('user_id',uid),
+    sb.from('materias').select('id,nome,cor').eq('user_id',uid),
+  ]);
+  var tarefas=res[0].data||[], notas=res[1].data||[], pom=res[2].data||[], mats=res[3].data||[];
+  var feitas=tarefas.filter(function(t){return t.done;}).length;
+  var atras=tarefas.filter(function(t){return !t.done&&t.data&&t.data<hojeStr();}).length;
+  var totM=pom.reduce(function(s,p){return s+(p.mins||0);},0);
+  var dias=new Set(pom.map(function(p){return p.data;})).size;
+  var pct=tarefas.length?Math.round(feitas/tarefas.length*100):0;
+
+  var matsHtml=mats.length?'<div style="display:flex;flex-wrap:wrap;gap:8px">'+mats.map(function(m){return '<span class="materia-chip" style="border-left:3px solid '+(CORES[m.cor]||'var(--accent)')+';padding-left:8px">'+m.nome+'</span>';}).join('')+'</div>':'<div style="color:var(--muted);font-size:12px">Nenhuma materia.</div>';
+
+  document.getElementById('tab-content').innerHTML=
+    '<div class="metrics-grid">'+
+    '<div class="metric-card"><div class="metric-label">Tarefas feitas</div><div class="metric-value" style="color:var(--green)">'+feitas+'</div><div class="metric-sub">de '+tarefas.length+'</div><div class="progress-bar-wrap"><div class="progress-bar" style="width:'+pct+'%"></div></div></div>'+
+    '<div class="metric-card"><div class="metric-label">Atrasadas</div><div class="metric-value" style="color:'+(atras>0?'var(--red)':'var(--muted)')+'">'+atras+'</div></div>'+
+    '<div class="metric-card"><div class="metric-label">Horas estudadas</div><div class="metric-value" style="color:var(--accent)">'+Math.floor(totM/60)+'h'+(totM%60?totM%60+'m':'')+'</div></div>'+
+    '<div class="metric-card"><div class="metric-label">Dias com estudo</div><div class="metric-value" style="color:var(--yellow)">'+dias+'</div></div>'+
+    '<div class="metric-card"><div class="metric-label">Anotacoes</div><div class="metric-value">'+notas.length+'</div></div>'+
+    '<div class="metric-card"><div class="metric-label">Materias</div><div class="metric-value">'+mats.length+'</div></div>'+
+    '</div>'+
+    '<div class="section"><div class="section-header"><div class="section-title">Materias</div><button class="btn-add" onclick="mudarAba(\'vinculo\')">Gerenciar</button></div>'+matsHtml+'</div>';
+}
+
+async function renderTarefas() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([sb.from('tarefas').select('*').eq('user_id',uid).order('data'),sb.from('materias').select('id,nome').eq('user_id',uid)]);
+  var tar=res[0].data||[], matMap={};
+  (res[1].data||[]).forEach(function(m){matMap[m.id]=m.nome;});
+  var hoje=hojeStr();
+  var btnNova='<div style="margin-bottom:20px;display:flex;justify-content:flex-end"><button class="btn-add" onclick="abrirModalTarefa()">+ Nova Tarefa</button></div>';
+  if(!tar.length){document.getElementById('tab-content').innerHTML=btnNova+'<div class="empty-state"><div class="empty-icon">&#9635;</div><p>Nenhuma tarefa</p></div>';return;}
+  function grp(lista,titulo,cls,lbl){if(!lista.length)return'';return'<div class="section"><div class="section-title">'+titulo+' ('+lista.length+')</div><div class="table-wrap"><table class="data-table"><thead><tr><th>Descricao</th><th>Materia</th><th>Data</th><th>Status</th></tr></thead><tbody>'+lista.map(function(t){return'<tr><td style="'+(t.done?'opacity:.5;text-decoration:line-through':'')+'">'+(t.descricao||'-')+'</td><td><span class="materia-chip">'+(matMap[t.materia]||'-')+'</span></td><td style="color:var(--muted)">'+(t.data?formatarData(t.data):'-')+'</td><td><span class="tag '+cls+'">'+lbl+'</span></td></tr>';}).join('')+'</tbody></table></div></div>';}
+  document.getElementById('tab-content').innerHTML=btnNova+grp(tar.filter(function(t){return!t.done&&t.data&&t.data<hoje;}),'Atrasadas','tag-late','Atrasada')+grp(tar.filter(function(t){return!t.done&&(!t.data||t.data>=hoje);}),'Pendentes','tag-pending','Pendente')+grp(tar.filter(function(t){return t.done;}),'Concluidas','tag-done','Feita');
+}
+
+async function renderNotas() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([sb.from('notas').select('*').eq('user_id',uid).order('updated',{ascending:false}),sb.from('materias').select('id,nome').eq('user_id',uid)]);
+  var notas=res[0].data||[], matMap={};
+  (res[1].data||[]).forEach(function(m){matMap[m.id]=m.nome;});
+  if(!notas.length){document.getElementById('tab-content').innerHTML='<div class="empty-state"><div class="empty-icon">&#9767;</div><p>Nenhuma anotacao</p></div>';return;}
+  document.getElementById('tab-content').innerHTML='<div class="section"><div class="section-title">'+notas.length+' anotacao(oes)</div>'+notas.map(function(n){return'<div class="item-card"><div class="item-card-title">'+(n.title||'(sem titulo)')+'</div><div class="item-card-sub"><span class="materia-chip">'+(matMap[n.materia]||'-')+'</span><span style="margin-left:8px">'+(n.updated?new Date(n.updated).toLocaleDateString('pt-BR'):'-')+'</span></div></div>';}).join('')+'</div>';
+}
+
+async function renderProgresso() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([sb.from('pomodoro_log').select('*').eq('user_id',uid).order('data',{ascending:false}),sb.from('materias').select('id,nome').eq('user_id',uid)]);
+  var logs=res[0].data||[], matMap={};
+  (res[1].data||[]).forEach(function(m){matMap[m.id]=m.nome;});
+  if(!logs.length){document.getElementById('tab-content').innerHTML='<div class="empty-state"><div class="empty-icon">&#9673;</div><p>Nenhuma sessao registrada</p></div>';return;}
+  var u7=[];for(var i=6;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);u7.push(d.toISOString().split('T')[0]);}
+  var mD={};u7.forEach(function(d){mD[d]=0;});logs.forEach(function(l){if(mD[l.data]!==undefined)mD[l.data]+=(l.mins||0);});
+  var mx=Math.max.apply(null,Object.values(mD).concat([1]));
+  var tot=logs.reduce(function(s,l){return s+(l.mins||0);},0);
+  var diasE=new Set(logs.map(function(l){return l.data;})).size;
+  var bars=u7.map(function(d){var m=mD[d],p=Math.round(m/mx*100),lb=new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short'});return'<div class="bar-col"><div style="font-size:9px;color:var(--muted)">'+(m>0?m+'m':'')+'</div><div class="bar" style="height:'+Math.max(p,2)+'%"></div><div class="bar-label">'+lb+'</div></div>';}).join('');
+  document.getElementById('tab-content').innerHTML='<div class="metrics-grid"><div class="metric-card"><div class="metric-label">Total</div><div class="metric-value" style="color:var(--accent)">'+Math.floor(tot/60)+'h '+(tot%60)+'m</div></div><div class="metric-card"><div class="metric-label">Sessoes</div><div class="metric-value">'+logs.length+'</div></div><div class="metric-card"><div class="metric-label">Dias</div><div class="metric-value" style="color:var(--yellow)">'+diasE+'</div></div><div class="metric-card"><div class="metric-label">Media/dia</div><div class="metric-value">'+(diasE?Math.round(tot/diasE):0)+'<span style="font-size:14px"> min</span></div></div></div><div class="section"><div class="section-title">Ultimos 7 dias</div><div class="bar-chart">'+bars+'</div></div>';
+}
+
+async function renderRotina() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([sb.from('rotina').select('*').eq('user_id',uid),sb.from('materias').select('id,nome').eq('user_id',uid)]);
+  var slotMap={};(res[0].data||[]).forEach(function(r){slotMap[r.slot_key]=r;});
+  var matMap={};(res[1].data||[]).forEach(function(m){matMap[m.id]=m.nome;});
+  var DIAS=['seg','ter','qua','qui','sex','sab','dom'],DLBL=['Seg','Ter','Qua','Qui','Sex','Sab','Dom'],horas=[];
+  for(var h=7;h<=22;h++)for(var m=0;m<60;m+=15)horas.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
+  var ocup=Object.keys(slotMap).length,total=DIAS.length*horas.length;
+  var grid=horas.map(function(hora){return'<div class="rotina-hora">'+hora+'</div>'+DIAS.map(function(dia){var key=dia+'-'+hora,s=slotMap[key],nm=s?(matMap[s.materia]||s.materia||'.'):'';return'<div class="rotina-slot '+(s?'filled':'')+'" title="'+nm+'">'+nm.substring(0,5)+'</div>';}).join('');}).join('');
+  document.getElementById('tab-content').innerHTML='<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="section-title" style="margin-bottom:0">Grade Semanal</div><div style="font-size:11px;color:var(--muted)">'+ocup+' de '+total+' slots</div></div><div style="overflow-x:auto"><div class="rotina-grid" style="min-width:500px"><div></div>'+DLBL.map(function(d){return'<div class="rotina-header">'+d+'</div>';}).join('')+grid+'</div></div></div>';
+}
+
+var _prescritaEditMap=[],_prescritaMaterias=[],_prescritaMatAtiva=null;
+async function renderRotinaPrescrita() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([sb.from('materias').select('id,nome,cor').eq('user_id',uid),sb.from('rotina_prescrita').select('*').eq('aluno_id',uid),sb.from('profiles').select('meta_horas_semana,obs_educador').eq('id',uid).single()]);
+  _prescritaMaterias=res[0].data||[];_prescritaEditMap={};(res[1].data||[]).forEach(function(r){_prescritaEditMap[r.slot_key]=r.materia;});
+  var meta=res[2].data?(res[2].data.meta_horas_semana||10):10, obs=res[2].data?(res[2].data.obs_educador||''):'';
+  var DIAS=['seg','ter','qua','qui','sex','sab','dom'],DLBL=['Seg','Ter','Qua','Qui','Sex','Sab','Dom'],horas=[];
+  for(var h=7;h<=22;h++)for(var m=0;m<60;m+=15)horas.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
+  var preench=Object.keys(_prescritaEditMap).length,hPres=Math.round(preench*15/60*10)/10;
+  var legenda=_prescritaMaterias.map(function(m){var cor=_CORES[m.cor]||_CORES[0];return'<button class="filter-btn" style="border-color:'+cor+';color:'+cor+'" onclick="prescritaSelecionarMateria(\''+m.id+'\')">'+m.nome+'</button>';}).join('')+'<button class="filter-btn" style="border-color:#f07c7c;color:#f07c7c" onclick="prescritaSelecionarMateria(null)">x Apagar</button>';
+  var gridSlots=horas.map(function(hora){return'<div class="rotina-hora">'+hora+'</div>'+DIAS.map(function(dia){var key=dia+'-'+hora,mat=_prescritaEditMap[key]||'',mObj=_prescritaMaterias.find(function(m){return m.id===mat;}),nome=mObj?mObj.nome:'';return'<div class="rotina-slot '+(mat?'filled':'')+'" id="ps-'+key+'" onclick="prescritaToggleSlot(\''+key+'\')" style="cursor:pointer" title="'+nome+'">'+nome.substring(0,5)+'</div>';}).join('');}).join('');
+  document.getElementById('tab-content').innerHTML=
+    '<div class="section"><div class="section-title">Meta Semanal</div><div class="item-card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">'+
+    '<div style="flex:1;min-width:160px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Horas/semana</div><div style="display:flex;align-items:center;gap:8px"><input type="number" id="meta-horas-input" value="'+meta+'" min="1" max="168" step="0.5" style="width:80px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:\'DM Mono\',monospace;font-size:13px;outline:none"><span style="font-size:12px;color:var(--muted)">h/sem</span></div></div>'+
+    '<div style="flex:2;min-width:200px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Orientacoes ao aluno</div><textarea id="obs-educador-input" rows="2" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:\'DM Mono\',monospace;font-size:12px;outline:none;resize:vertical" placeholder="Ex: focar em Matematica...">'+obs+'</textarea></div>'+
+    '<button onclick="salvarMeta()" style="align-self:flex-end;padding:8px 18px;background:rgba(74,159,255,0.15);border:1px solid rgba(74,159,255,0.3);color:var(--accent);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer">Salvar meta</button></div></div>'+
+    '<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px"><div><div class="section-title" style="margin-bottom:4px">Grade Prescrita</div><div style="font-size:11px;color:var(--muted)">'+preench+' slots - '+hPres+'h</div></div>'+
+    '<div style="display:flex;gap:8px"><button onclick="prescritaLimparTudo()" style="padding:6px 14px;background:rgba(240,124,124,0.1);border:1px solid rgba(240,124,124,0.2);color:#f07c7c;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer">Limpar</button>'+
+    '<button onclick="salvarRotinaPrescrita()" style="padding:6px 18px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer;font-weight:600">Salvar rotina</button></div></div>'+
+    '<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Materia ativa:</div><div style="display:flex;gap:6px;flex-wrap:wrap" id="prescrita-legenda">'+legenda+'</div></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="prescrita-ativa-label">Nenhuma selecionada</div>'+
+    '<div style="overflow-x:auto"><div class="rotina-grid" style="min-width:500px"><div></div>'+DLBL.map(function(d){return'<div class="rotina-header">'+d+'</div>';}).join('')+gridSlots+'</div></div></div>';
+  if(_prescritaMaterias.length)prescritaSelecionarMateria(_prescritaMaterias[0].id);
+}
+
+function prescritaSelecionarMateria(matId){_prescritaMatAtiva=matId;var mObj=matId?_prescritaMaterias.find(function(m){return m.id===matId;}):null;var lbl=document.getElementById('prescrita-ativa-label');if(lbl)lbl.innerHTML='Materia ativa: <strong style="color:var(--text)">'+(mObj?mObj.nome:'Apagar')+'</strong>';}
+function prescritaToggleSlot(key){var el=document.getElementById('ps-'+key);if(!el)return;if(_prescritaMatAtiva===null){delete _prescritaEditMap[key];el.textContent='';el.classList.remove('filled');el.style.background='';el.style.borderColor='';}else{var mObj=_prescritaMaterias.find(function(m){return m.id===_prescritaMatAtiva;});var cor=mObj?(_CORES[mObj.cor]||_CORES[0]):'var(--accent)';_prescritaEditMap[key]=_prescritaMatAtiva;el.textContent=mObj?mObj.nome.substring(0,5):'';el.classList.add('filled');el.style.background=cor+'22';el.style.borderColor=cor+'66';}}
+function prescritaLimparTudo(){_prescritaEditMap={};document.querySelectorAll('[id^="ps-"]').forEach(function(el){el.textContent='';el.classList.remove('filled');el.style.background='';el.style.borderColor='';});}
+async function salvarMeta(){var sb=window._sb,meta=parseFloat(document.getElementById('meta-horas-input').value)||10,obs=document.getElementById('obs-educador-input').value||'';var r=await sb.from('profiles').update({meta_horas_semana:meta,obs_educador:obs}).eq('id',selectedUser.id);if(r.error)showToast('Erro: '+r.error.message,'error');else showToast('Meta salva!');}
+async function salvarRotinaPrescrita(){var sb=window._sb,uid=selectedUser.id;await sb.from('rotina_prescrita').delete().eq('aluno_id',uid);var slots=Object.entries(_prescritaEditMap).map(function(e){return{id:uid+'-'+e[0],aluno_id:uid,prescrita_por:currentProfile.id,slot_key:e[0],materia:e[1]};});if(slots.length){var r=await sb.from('rotina_prescrita').insert(slots);if(r.error){showToast('Erro: '+r.error.message,'error');return;}}showToast('Rotina prescrita salva — '+slots.length+' slots!');}
+
+async function renderRelatorio() {
+  var sb=window._sb, uid=selectedUser.id;
+  var res=await Promise.all([sb.from('pomodoro_log').select('mins,data,materia').eq('user_id',uid),sb.from('profiles').select('meta_horas_semana,obs_educador').eq('id',uid).single(),sb.from('rotina_prescrita').select('slot_key,materia').eq('aluno_id',uid),sb.from('materias').select('id,nome,cor').eq('user_id',uid)]);
+  var logs=res[0].data||[],meta=res[1].data?(res[1].data.meta_horas_semana||10):10,obs=res[1].data?(res[1].data.obs_educador||''):'',prescritos=res[2].data||[],mats=res[3].data||[];
+  var hPres=Math.round(prescritos.length*15/60*10)/10;
+  function iniSem(date){var d=new Date(date),dia=d.getDay();d.setDate(d.getDate()-(dia===0?6:dia-1));return d.toISOString().split('T')[0];}
+  var semanas=[];for(var i=3;i>=0;i--){var dd=new Date();dd.setDate(dd.getDate()-i*7);var ini=iniSem(dd),fim=new Date(ini);fim.setDate(fim.getDate()+6);semanas.push({ini:ini,fim:fim.toISOString().split('T')[0],label:'S'+(4-i)});}
+  var metaMins=meta*60,mSem=semanas.map(function(s){return logs.filter(function(l){return l.data>=s.ini&&l.data<=s.fim;}).reduce(function(a,l){return a+(l.mins||0);},0);});
+  var mAtual=mSem[3],hAtual=Math.round(mAtual/60*10)/10,pct=meta>0?Math.min(Math.round(hAtual/meta*100),150):0;
+  var status=pct>=100?'Acima da Meta':pct>=70?'Proximo da Meta':'Abaixo da Meta',sColor=pct>=100?'var(--green)':pct>=70?'var(--yellow)':'#f07c7c';
+  var mx=Math.max.apply(null,mSem.concat([metaMins,1]));
+  var barras=semanas.map(function(s,i){var m=mSem[i],h=Math.round(m/60*10)/10,bH=Math.round(m/mx*80),col=m>=metaMins?'var(--green)':m>=metaMins*0.7?'var(--yellow)':'#f07c7c';return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font-size:10px;color:var(--muted)">'+h+'h</div><div style="width:100%;border-radius:6px 6px 0 0;background:'+col+';opacity:0.8;height:'+Math.max(bH,3)+'px"></div><div style="font-size:10px;color:var(--muted)">'+s.label+'</div></div>';}).join('');
+  document.getElementById('tab-content').innerHTML=
+    '<div class="item-card" style="margin-bottom:20px;border-color:'+sColor+'33"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px"><div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Status desta semana</div><div style="font-family:\'Syne\',sans-serif;font-size:22px;font-weight:800;color:'+sColor+'">'+status+'</div><div style="font-size:12px;color:var(--muted);margin-top:4px">'+hAtual+'h de '+meta+'h ('+pct+'%)</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--muted)">Rotina prescrita</div><div style="font-size:18px;font-weight:700">'+hPres+'h<span style="font-size:11px;color:var(--muted)">/sem</span></div></div></div><div style="margin-top:16px"><div style="background:rgba(255,255,255,0.05);border-radius:100px;height:10px"><div style="height:100%;border-radius:100px;background:'+sColor+';width:'+Math.min(pct,100)+'%;transition:width 0.8s ease"></div></div></div></div>'+
+    '<div class="section"><div class="section-title">Ultimas 4 Semanas</div><div style="display:flex;align-items:flex-end;gap:12px;height:90px;margin-bottom:8px">'+barras+'</div></div>'+
+    (obs?'<div class="section"><div class="section-title">Orientacoes</div><div class="item-card" style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.7)">'+obs.replace(/\n/g,'<br>')+'</div></div>':'');
+}
+
+async function renderGestao() {
+  var sb=window._sb;
+  if(currentProfile.role!=='super_admin'){document.getElementById('tab-content').innerHTML='<div class="empty-state"><div class="empty-icon">&#128274;</div><p>Acesso restrito</p></div>';return;}
+  var u=selectedUser;
+  document.getElementById('tab-content').innerHTML=
+    '<div class="section"><div class="section-title">Informacoes</div><div class="table-wrap"><table class="data-table"><tbody>'+
+    '<tr><td style="color:var(--muted);width:160px">ID</td><td style="font-size:11px;color:var(--muted)">'+u.id+'</td></tr>'+
+    '<tr><td style="color:var(--muted)">Nome</td><td>'+(u.nome||'-')+'</td></tr>'+
+    '<tr><td style="color:var(--muted)">Email</td><td>'+(u.email||'-')+'</td></tr>'+
+    '<tr><td style="color:var(--muted)">Role</td><td><span class="role-badge badge-'+u.role+'">'+u.role.replace('_',' ')+'</span></td></tr>'+
+    '</tbody></table></div></div>'+
+    '<div class="section"><div class="section-title">Alterar role</div><div class="item-card"><div style="display:flex;align-items:center;gap:12px">'+
+    '<select class="role-select" id="select-novo-role"><option value="aluno"'+(u.role==='aluno'?' selected':'')+'>Aluno</option><option value="educador"'+(u.role==='educador'?' selected':'')+'>Educador</option><option value="super_admin"'+(u.role==='super_admin'?' selected':'')+'>Super Admin</option></select>'+
+    '<button onclick="salvarRole()" style="padding:6px 18px;background:rgba(74,159,255,0.15);border:1px solid rgba(74,159,255,0.3);color:var(--accent);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer">Salvar</button>'+
+    '</div></div></div>';
+}
+
+async function salvarRole(){var sb=window._sb,el=document.getElementById('select-novo-role');if(!el)return;var nr=el.value;var r=await sb.from('profiles').update({role:nr}).eq('id',selectedUser.id);if(r.error){showToast('Erro: '+r.error.message,'error');return;}selectedUser.role=nr;var idx=allUsers.findIndex(function(u){return u.id===selectedUser.id;});if(idx!==-1)allUsers[idx].role=nr;var b=document.getElementById('panel-role-badge');b.textContent=nr.replace('_',' ');b.className='role-badge badge-'+nr;filtrarUsuarios();showToast('Role atualizado!');}
+
+// ===================================================================
+// MODAIS — Tarefa e Materia individuais
+// ===================================================================
+async function abrirModalTarefa() {
+  var sb=window._sb,mr=await sb.from('materias').select('id,nome').eq('user_id',selectedUser.id).order('nome');
+  var ops=(mr.data||[]).map(function(m){return'<option value="'+m.id+'">'+m.nome+'</option>';}).join('');
+  document.getElementById('modal-box').innerHTML=
+    '<div class="modal-title">+ Nova Tarefa<br><span style="font-size:11px;font-weight:400;color:var(--muted)">para '+(selectedUser.nome||selectedUser.email)+'</span></div>'+
+    '<div class="form-group"><label class="form-label">Descricao *</label><input class="form-input" id="f-desc" type="text" autofocus></div>'+
+    '<div class="form-group"><label class="form-label">Materia</label><select class="form-select" id="f-mat"><option value="">- Sem materia -</option>'+ops+'</select></div>'+
+    '<div class="form-group"><label class="form-label">Data</label><input class="form-input" id="f-data" type="date"></div>'+
+    '<div class="form-group"><label class="form-label">Hora</label><input class="form-input" id="f-hora" type="time"></div>'+
+    '<div class="form-group"><label class="form-label">Prioridade</label><select class="form-select" id="f-prior"><option value="0">Normal</option><option value="1">Media</option><option value="2">Alta</option></select></div>'+
+    '<div class="modal-actions"><button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button><button class="btn-modal-save" id="btn-save" onclick="salvarTarefa()">Criar Tarefa</button></div>';
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+async function abrirModalMateria() {
+  var btns=CORES.map(function(c,i){return'<button type="button" class="cor-btn '+(i===0?'selected':'')+'" style="background:'+c+'" onclick="selecionarCor('+i+')" id="cor-btn-'+i+'"></button>';}).join('');
+  document.getElementById('modal-box').innerHTML=
+    '<div class="modal-title">+ Nova Materia<br><span style="font-size:11px;font-weight:400;color:var(--muted)">para '+(selectedUser.nome||selectedUser.email)+'</span></div>'+
+    '<div class="form-group"><label class="form-label">Nome *</label><input class="form-input" id="f-nome" type="text" autofocus></div>'+
+    '<div class="form-group"><label class="form-label">Cor</label><div class="cor-picker">'+btns+'</div></div>'+
+    '<div class="form-group"><label class="form-label">Meta semanal (min)</label><input class="form-input" id="f-meta" type="number" min="0" max="9999" placeholder="Ex: 120"></div>'+
+    '<div class="modal-actions"><button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button><button class="btn-modal-save" id="btn-save" onclick="salvarMateria()">Criar Materia</button></div>';
+  window._corSel=0;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function selecionarCor(idx){document.querySelectorAll('.cor-btn').forEach(function(b){b.classList.remove('selected');});var b=document.getElementById('cor-btn-'+idx);if(b)b.classList.add('selected');window._corSel=idx;}
+function fecharModal(){document.getElementById('modal-overlay').classList.add('hidden');}
+
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)fecharModal();});
+});
+
+async function salvarTarefa(){var sb=window._sb,desc=(document.getElementById('f-desc').value||'').trim();if(!desc){showToast('Descricao obrigatoria','error');return;}var mat=document.getElementById('f-mat').value||null,data=document.getElementById('f-data').value||null,hora=document.getElementById('f-hora').value||null,prior=parseInt(document.getElementById('f-prior').value)||0,btn=document.getElementById('btn-save');btn.disabled=true;btn.textContent='Salvando...';var r=await sb.from('tarefas').insert({user_id:selectedUser.id,descricao:desc,materia:mat,data:data,hora:hora,prior:prior,done:false});if(r.error){showToast('Erro: '+r.error.message,'error');btn.disabled=false;btn.textContent='Criar Tarefa';return;}showToast('Tarefa criada!');fecharModal();await renderTarefas();}
+async function salvarMateria(){var sb=window._sb,nome=(document.getElementById('f-nome').value||'').trim();if(!nome){showToast('Nome obrigatorio','error');return;}var cor=window._corSel!==undefined?window._corSel:0,meta=parseInt(document.getElementById('f-meta').value)||null,btn=document.getElementById('btn-save');btn.disabled=true;btn.textContent='Salvando...';var r=await sb.from('materias').insert({user_id:selectedUser.id,nome:nome,cor:cor,meta:meta});if(r.error){showToast('Erro: '+r.error.message,'error');btn.disabled=false;btn.textContent='Criar Materia';return;}showToast('Materia criada!');fecharModal();await renderVinculo();}
+
+// ===================================================================
+// UTILITARIOS
+// ===================================================================
+function hojeStr(){return new Date().toISOString().split('T')[0];}
+function formatarData(d){if(!d)return'-';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+async function logout(){var sb=window._sb;sessionStorage.removeItem('studyos_user');await sb.auth.signOut();window.location.href='index.html';}
+function showToast(msg,type){type=type||'success';var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';t.style.background=type==='error'?'rgba(239,68,68,0.15)':'rgba(52,211,153,0.15)';t.style.color=type==='error'?'#ef4444':'#34d399';t.style.border=type==='error'?'1px solid rgba(239,68,68,0.3)':'1px solid rgba(52,211,153,0.3)';clearTimeout(t._timer);t._timer=setTimeout(function(){t.style.display='none';},3500);}
+function toggleSidebar(){var s=document.getElementById('sidebar'),o=document.getElementById('sidebar-overlay');if(s.classList.contains('open')){closeSidebar();}else{s.classList.add('open');o.classList.add('visible');document.body.style.overflow='hidden';}}
+function closeSidebar(){var s=document.getElementById('sidebar'),o=document.getElementById('sidebar-overlay');s.classList.remove('open');o.classList.remove('visible');document.body.style.overflow='';}
+window.addEventListener('resize',function(){if(window.innerWidth>768){closeSidebar();document.getElementById('btn-back-sidebar').style.display='none';}});
+</script>
+</body>
+</html>
