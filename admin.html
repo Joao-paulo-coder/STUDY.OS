@@ -313,8 +313,12 @@ var CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
 var todosCursos = [];
 var todasTurmas = [];
 var selectedTurma = null;
-var _vinculoSel  = {};   // cursoId -> turmaId selecionada
-var _vinculoData = {};   // cursoId -> {turmas, diaMap}
+var _vinculoSel   = {};  // cursoId -> Set of selected dias
+var _vinculoSlots = {};  // cursoId -> {dia -> Set<hora>}
+var _vinculoData  = {};  // cursoId -> {turmas, diaMap}
+var DIAS_ORDER = ['seg','ter','qua','qui','sex','sab'];
+var DIAS_LABEL = {seg:'Segunda',ter:'Terca',qua:'Quarta',qui:'Quinta',sex:'Sexta',sab:'Sabado'};
+var DIAS_FULL  = {seg:'Segunda-feira',ter:'Terca-feira',qua:'Quarta-feira',qui:'Quinta-feira',sex:'Sexta-feira',sab:'Sabado'};
 
 // Horarios fixos disponiveis
 var HORARIOS_FIXOS = [
@@ -762,7 +766,7 @@ async function salvarRotinaEmLote() {
 }
 
 // ===================================================================
-// ABA: VINCULO E MATERIAS (perfil individual do aluno)
+// ABA: VINCULO E MATERIAS
 // ===================================================================
 async function renderVinculo() {
   var sb  = window._sb;
@@ -770,54 +774,47 @@ async function renderVinculo() {
   var res = await Promise.all([
     sb.from('cursos').select('id,nome').order('nome'),
     sb.from('turmas').select('id,curso_id,nome,dias,horario_inicio,horario_fim').order('nome'),
-    sb.from('turma_membros').select('turma_id,curso_id').eq('user_id',uid),
     sb.from('materias').select('id,nome,cor').eq('user_id',uid),
+    sb.from('rotina_prescrita').select('slot_key').eq('aluno_id',uid).eq('is_aula',true),
   ]);
   var cursos   = res[0].data||[];
   var turmas   = res[1].data||[];
-  var vinculos = res[2].data||[];
-  var materias = res[3].data||[];
+  var materias = res[2].data||[];
+  var aulaRows = res[3].data||[];
 
-  // Inicializa selecao atual
-  _vinculoSel  = {};
-  _vinculoData = {};
-  vinculos.forEach(function(v){ _vinculoSel[v.curso_id] = v.turma_id; });
+  // Monta mapa de slots de aula existentes: dia -> Set<hora>
+  var aulaMap = {};
+  aulaRows.forEach(function(r){
+    var p = r.slot_key.split('-'); var dia=p[0], hora=p[1];
+    if(!aulaMap[dia]) aulaMap[dia]=new Set();
+    aulaMap[dia].add(hora);
+  });
 
-  // Monta dados por curso (turmas + mapa dia->turma)
+  // Inicializa estado
+  _vinculoSel   = {};
+  _vinculoSlots = {};
+  _vinculoData  = {};
+
   cursos.forEach(function(curso){
     var tdc = turmas.filter(function(t){ return t.curso_id===curso.id; });
     var dm  = {};
     tdc.forEach(function(t){ (t.dias||[]).forEach(function(d){ dm[d]=t; }); });
     _vinculoData[curso.id] = {turmas:tdc, diaMap:dm};
+
+    // Dias selecionados = dias que tem aula salva
+    _vinculoSel[curso.id]   = new Set();
+    _vinculoSlots[curso.id] = {};
+    DIAS_ORDER.forEach(function(dia){
+      if(aulaMap[dia] && aulaMap[dia].size){
+        _vinculoSel[curso.id].add(dia);
+        _vinculoSlots[curso.id][dia] = new Set(aulaMap[dia]);
+      }
+    });
   });
 
-  var DIAS_ORDER = ['seg','ter','qua','qui','sex','sab'];
-  var DIAS_LABEL = {seg:'Segunda',ter:'Terca',qua:'Quarta',qui:'Quinta',sex:'Sexta',sab:'Sabado'};
-
   var cursosHtml = cursos.map(function(curso){
-    var cards = DIAS_ORDER.map(function(dia){
-      var turma = (_vinculoData[curso.id]||{diaMap:{}}).diaMap[dia];
-      if (!turma) return '';
-      var isActive = (_vinculoSel[curso.id]||'') === turma.id;
-      var ini = turma.horario_inicio.substring(0,5);
-      var fim = turma.horario_fim.substring(0,5);
-      var bg  = isActive ? 'background:rgba(74,159,255,0.12);border-color:var(--accent)' : 'background:rgba(255,255,255,0.02)';
-      var tc  = isActive ? 'color:var(--accent)' : 'color:var(--text)';
-      return '<div id="dc-'+curso.id+'-'+dia+'" onclick="selecionarDiaTurma(\''+curso.id+'\',\''+turma.id+'\')" ' +
-        'style="cursor:pointer;padding:12px 14px;border:1px solid var(--border);border-radius:10px;text-align:center;min-width:86px;transition:all 0.2s;'+bg+'">' +
-        '<div style="font-size:12px;font-weight:600;margin-bottom:5px;'+tc+'">'+DIAS_LABEL[dia]+'</div>' +
-        '<div style="font-size:10px;color:var(--muted)">'+ini+' – '+fim+'</div>' +
-        '</div>';
-    }).join('');
-    var turmaAtualObj = (_vinculoData[curso.id]||{turmas:[]}).turmas.find(function(t){ return t.id===(_vinculoSel[curso.id]||''); });
-    var lblTurma = turmaAtualObj ? ('Turma: '+turmaAtualObj.nome) : 'Sem turma selecionada';
-    return '<div style="margin-bottom:20px">'+
-      '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;text-transform:uppercase">'+curso.nome+'</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">'+cards+'</div>'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">'+
-      '<div style="font-size:11px;color:var(--muted)" id="turma-label-'+curso.id+'">'+lblTurma+'</div>'+
-      '<button class="btn-add" onclick="salvarVinculo(\''+curso.id+'\')">Salvar</button>'+
-      '</div></div>';
+    return '<div class="item-card" style="margin-bottom:16px" id="vinculo-curso-'+curso.id+'">' +
+      _buildVinculoCursoInner(curso.id, curso.nome) + '</div>';
   }).join('');
 
   var matsHtml = materias.length
@@ -829,54 +826,172 @@ async function renderVinculo() {
     : '<div style="color:var(--muted);font-size:12px;margin-bottom:12px">Nenhuma materia cadastrada.</div>';
 
   document.getElementById('tab-content').innerHTML =
-    '<div class="section"><div class="section-title">Turma do aluno</div><div class="item-card">'+cursosHtml+'</div></div>'+
+    '<div class="section"><div class="section-title">Horario de Aulas</div>'+cursosHtml+'</div>'+
     '<div class="section">'+
       '<div class="section-header"><div class="section-title">Materias</div><button class="btn-add" onclick="abrirModalMateria()">+ Nova Materia</button></div>'+
-      matsHtml+
+      matsHtml+'</div>';
+}
+
+function _buildVinculoCursoInner(cursoId, cursoNome) {
+  var data     = _vinculoData[cursoId]||{diaMap:{}};
+  var selDias  = _vinculoSel[cursoId]||new Set();
+  var slots    = _vinculoSlots[cursoId]||{};
+
+  // Botoes de dias
+  var dayBtns = DIAS_ORDER.map(function(dia){
+    var turma = data.diaMap[dia];
+    if(!turma) return '';
+    var isActive = selDias.has(dia);
+    var ini = turma.horario_inicio.substring(0,5);
+    var fim = turma.horario_fim.substring(0,5);
+    var bg  = isActive ? 'background:rgba(74,159,255,0.13);border-color:var(--accent)' : 'background:rgba(255,255,255,0.02);border-color:var(--border)';
+    var tc  = isActive ? 'color:var(--accent)' : 'color:var(--muted)';
+    return '<div onclick="toggleDiaVinculo(\''+cursoId+'\',\''+dia+'\')" ' +
+      'style="cursor:pointer;padding:10px 12px;border:1px solid;border-radius:10px;text-align:center;min-width:80px;transition:all 0.2s;'+bg+';'+tc+'">' +
+      '<div style="font-size:12px;font-weight:600;margin-bottom:3px">'+DIAS_LABEL[dia]+'</div>' +
+      '<div style="font-size:9px;opacity:0.7">'+ini+' – '+fim+'</div>' +
+      '</div>';
+  }).join('');
+
+  // Gaveta: um bloco por dia ativo
+  var gavetaHtml = '';
+  DIAS_ORDER.forEach(function(dia){
+    if(!selDias.has(dia)) return;
+    var turma = data.diaMap[dia];
+    if(!turma) return;
+    var ini = parseInt(turma.horario_inicio.substring(0,2));
+    var fim = parseInt(turma.horario_fim.substring(0,2));
+    var diaSlots = slots[dia]||new Set();
+    var allOn = diaSlots.size >= (fim-ini);
+
+    var slotBtns = '';
+    for(var h=ini; h<fim; h++){
+      var horaStr = (h<10?'0':'')+h+':00';
+      var on = diaSlots.has(horaStr);
+      var sc = on ? 'background:rgba(74,159,255,0.15);border-color:var(--accent);color:var(--accent)'
+                  : 'background:rgba(255,255,255,0.02);border-color:var(--border);color:var(--muted)';
+      slotBtns += '<div onclick="toggleSlotVinculo(\''+cursoId+'\',\''+dia+'\',\''+horaStr+'\')" ' +
+        'style="cursor:pointer;padding:5px 9px;border:1px solid;border-radius:7px;font-size:11px;min-width:52px;text-align:center;transition:all 0.15s;'+sc+'">'+horaStr+'</div>';
+    }
+
+    gavetaHtml +=
+      '<div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.015);border:1px solid var(--border);border-radius:10px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+          '<div style="font-size:11px;font-weight:600">'+DIAS_FULL[dia]+'</div>'+
+          '<button onclick="toggleTodosSlots(\''+cursoId+'\',\''+dia+'\')" '+
+            'style="font-size:10px;padding:3px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer">'+
+            (allOn?'Limpar':'Selecionar todos')+'</button>'+
+        '</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px">'+slotBtns+'</div>'+
+      '</div>';
+  });
+
+  var nSlots = 0;
+  Object.keys(slots).forEach(function(d){ nSlots += (slots[d]?slots[d].size:0); });
+
+  return '<div style="font-size:11px;color:var(--muted);margin-bottom:12px;letter-spacing:1px;text-transform:uppercase">'+cursoNome+'</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+dayBtns+'</div>'+
+    gavetaHtml+
+    '<div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between">'+
+      '<div style="font-size:11px;color:var(--muted)">'+nSlots+' hora'+(nSlots!==1?'s':'')+' selecionada'+(nSlots!==1?'s':'')+'</div>'+
+      '<button class="btn-add" onclick="salvarHorarioVinculo(\''+cursoId+'\')">Salvar Horario</button>'+
     '</div>';
 }
 
-function selecionarDiaTurma(cursoId, turmaId) {
-  // Toggle: clicar no mesmo turma desseleciona
-  _vinculoSel[cursoId] = (_vinculoSel[cursoId]===turmaId) ? '' : turmaId;
-  var selected = _vinculoSel[cursoId]||'';
-  var data = _vinculoData[cursoId]||{diaMap:{}};
-  var DIAS_ORDER = ['seg','ter','qua','qui','sex','sab'];
-  // Atualiza visual de cada dia
-  DIAS_ORDER.forEach(function(dia){
-    var turma = data.diaMap[dia];
-    if (!turma) return;
-    var el = document.getElementById('dc-'+cursoId+'-'+dia);
-    if (!el) return;
-    var isActive = selected===turma.id;
-    el.style.background   = isActive ? 'rgba(74,159,255,0.12)' : 'rgba(255,255,255,0.02)';
-    el.style.borderColor  = isActive ? 'var(--accent)' : 'var(--border)';
-    var title = el.querySelector('div');
-    if (title) title.style.color = isActive ? 'var(--accent)' : 'var(--text)';
-  });
-  // Atualiza label
-  var lbl = document.getElementById('turma-label-'+cursoId);
-  if (lbl) {
-    var t = (data.turmas||[]).find(function(t){ return t.id===selected; });
-    lbl.textContent = t ? ('Turma: '+t.nome) : 'Sem turma selecionada';
+function toggleDiaVinculo(cursoId, dia) {
+  var data    = _vinculoData[cursoId]||{diaMap:{}};
+  var selDias = _vinculoSel[cursoId];
+  if(!selDias){ selDias=new Set(); _vinculoSel[cursoId]=selDias; }
+  var slots   = _vinculoSlots[cursoId];
+  if(!slots){ slots={}; _vinculoSlots[cursoId]=slots; }
+
+  var turma = data.diaMap[dia];
+  var pairedDias = turma ? (turma.dias||[dia]) : [dia];
+
+  if(selDias.has(dia)){
+    // Deseleciona apenas este dia (liberdade total)
+    selDias.delete(dia);
+    delete slots[dia];
+  } else {
+    // Seleciona este dia + pares automaticamente
+    pairedDias.forEach(function(d){
+      selDias.add(d);
+      var t = data.diaMap[d];
+      if(t && !slots[d]){
+        var ini=parseInt(t.horario_inicio.substring(0,2)), fim=parseInt(t.horario_fim.substring(0,2));
+        var s=new Set();
+        for(var h=ini;h<fim;h++) s.add((h<10?'0':'')+h+':00');
+        slots[d]=s;
+      }
+    });
   }
+  // Re-renderiza o card do curso
+  var cursoNome='';
+  (todosCursos||[]).forEach(function(c){ if(c.id===cursoId) cursoNome=c.nome; });
+  var el=document.getElementById('vinculo-curso-'+cursoId);
+  if(el) el.innerHTML=_buildVinculoCursoInner(cursoId, cursoNome);
 }
 
-async function salvarVinculo(cursoId) {
-  var sb      = window._sb;
-  var uid     = selectedUser.id;
-  var turmaId = _vinculoSel[cursoId]||'';
+function toggleSlotVinculo(cursoId, dia, hora) {
+  var slots = _vinculoSlots[cursoId];
+  if(!slots){ slots={}; _vinculoSlots[cursoId]=slots; }
+  if(!slots[dia]) slots[dia]=new Set();
+  if(slots[dia].has(hora)) slots[dia].delete(hora);
+  else slots[dia].add(hora);
+  var cursoNome='';
+  (todosCursos||[]).forEach(function(c){ if(c.id===cursoId) cursoNome=c.nome; });
+  var el=document.getElementById('vinculo-curso-'+cursoId);
+  if(el) el.innerHTML=_buildVinculoCursoInner(cursoId, cursoNome);
+}
 
-  // Remove vinculo atual neste curso
-  await sb.from('turma_membros').delete().eq('user_id',uid).eq('curso_id',cursoId);
+function toggleTodosSlots(cursoId, dia) {
+  var data  = _vinculoData[cursoId]||{diaMap:{}};
+  var turma = data.diaMap[dia];
+  if(!turma) return;
+  var ini=parseInt(turma.horario_inicio.substring(0,2)), fim=parseInt(turma.horario_fim.substring(0,2));
+  var slots=_vinculoSlots[cursoId]; if(!slots){ slots={}; _vinculoSlots[cursoId]=slots; }
+  if(!slots[dia]) slots[dia]=new Set();
+  var allOn = slots[dia].size>=(fim-ini);
+  if(allOn){ slots[dia].clear(); }
+  else { for(var h=ini;h<fim;h++) slots[dia].add((h<10?'0':'')+h+':00'); }
+  var cursoNome='';
+  (todosCursos||[]).forEach(function(c){ if(c.id===cursoId) cursoNome=c.nome; });
+  var el=document.getElementById('vinculo-curso-'+cursoId);
+  if(el) el.innerHTML=_buildVinculoCursoInner(cursoId, cursoNome);
+}
 
-  if (turmaId) {
-    var r = await sb.from('turma_membros').insert({turma_id:turmaId, curso_id:cursoId, user_id:uid});
-    if (r.error) { showToast('Erro: '+r.error.message,'error'); return; }
-    showToast('Turma vinculada com sucesso!');
-  } else {
-    showToast('Vinculo removido.');
+async function salvarHorarioVinculo(cursoId) {
+  var sb  = window._sb;
+  var uid = selectedUser.id;
+
+  // Remove slots de aula existentes e re-insere
+  await sb.from('rotina_prescrita').delete().eq('aluno_id',uid).eq('is_aula',true);
+
+  var allSlots = [];
+  Object.keys(_vinculoSlots).forEach(function(cId){
+    var cSlots = _vinculoSlots[cId]||{};
+    Object.keys(cSlots).forEach(function(dia){
+      (cSlots[dia]||new Set()).forEach(function(hora){
+        var key=dia+'-'+hora;
+        allSlots.push({id:uid+'-aula-'+key, aluno_id:uid, prescrita_por:currentProfile.id, slot_key:key, materia:null, is_aula:true});
+      });
+    });
+  });
+
+  if(allSlots.length){
+    var r = await sb.from('rotina_prescrita').insert(allSlots);
+    if(r.error){ showToast('Erro: '+r.error.message,'error'); return; }
   }
+
+  // Atualiza turma_membros para o curso salvo
+  var data    = _vinculoData[cursoId]||{diaMap:{}};
+  var selDias = _vinculoSel[cursoId]||new Set();
+  await sb.from('turma_membros').delete().eq('user_id',uid).eq('curso_id',cursoId);
+  var turmaVisto = null;
+  selDias.forEach(function(dia){ var t=data.diaMap[dia]; if(t&&!turmaVisto) turmaVisto=t.id; });
+  if(turmaVisto) await sb.from('turma_membros').insert({turma_id:turmaVisto, curso_id:cursoId, user_id:uid});
+
+  showToast('Horario salvo — '+allSlots.length+' hora'+(allSlots.length!==1?'s':'')+' de aula!');
   await carregarGrupos();
 }
 
@@ -993,35 +1108,84 @@ async function renderProgresso() {
 
 async function renderRotina() {
   var sb=window._sb, uid=selectedUser.id;
-  var res=await Promise.all([sb.from('rotina').select('*').eq('user_id',uid),sb.from('materias').select('id,nome').eq('user_id',uid)]);
+  var res=await Promise.all([
+    sb.from('rotina').select('*').eq('user_id',uid),
+    sb.from('materias').select('id,nome').eq('user_id',uid),
+    sb.from('rotina_prescrita').select('slot_key').eq('aluno_id',uid).eq('is_aula',true)
+  ]);
   var slotMap={};(res[0].data||[]).forEach(function(r){slotMap[r.slot_key]=r;});
   var matMap={};(res[1].data||[]).forEach(function(m){matMap[m.id]=m.nome;});
+  // Monta set de horas de aula (ex: 'seg-08' -> toda hora do slot 15min marcada)
+  var aulaHoras=new Set();
+  (res[2].data||[]).forEach(function(r){
+    var p=r.slot_key.split('-'); aulaHoras.add(p[0]+'-'+p[1].substring(0,2));
+  });
   var DIAS=['seg','ter','qua','qui','sex','sab','dom'],DLBL=['Seg','Ter','Qua','Qui','Sex','Sab','Dom'],horas=[];
   for(var h=7;h<=22;h++)for(var m=0;m<60;m+=15)horas.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
-  var ocup=Object.keys(slotMap).length,total=DIAS.length*horas.length;
-  var grid=horas.map(function(hora){return'<div class="rotina-hora">'+hora+'</div>'+DIAS.map(function(dia){var key=dia+'-'+hora,s=slotMap[key],nm=s?(matMap[s.materia]||s.materia||'.'):'';return'<div class="rotina-slot '+(s?'filled':'')+'" title="'+nm+'">'+nm.substring(0,5)+'</div>';}).join('');}).join('');
-  document.getElementById('tab-content').innerHTML='<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="section-title" style="margin-bottom:0">Grade Semanal</div><div style="font-size:11px;color:var(--muted)">'+ocup+' de '+total+' slots</div></div><div style="overflow-x:auto"><div class="rotina-grid" style="min-width:500px"><div></div>'+DLBL.map(function(d){return'<div class="rotina-header">'+d+'</div>';}).join('')+grid+'</div></div></div>';
+  var ocup=Object.keys(slotMap).length+aulaHoras.size,total=DIAS.length*horas.length;
+  var grid=horas.map(function(hora){
+    return'<div class="rotina-hora">'+hora+'</div>'+DIAS.map(function(dia){
+      var key=dia+'-'+hora, s=slotMap[key];
+      var hourKey=dia+'-'+hora.substring(0,2);
+      if(s){ var nm=matMap[s.materia]||s.materia||'.'; return'<div class="rotina-slot filled" title="'+nm+'">'+nm.substring(0,5)+'</div>'; }
+      if(aulaHoras.has(hourKey)){ return'<div class="rotina-slot" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2)" title="Aula"><div style="font-size:7px;color:rgba(251,191,36,0.5);line-height:1">aula</div></div>'; }
+      return'<div class="rotina-slot"></div>';
+    }).join('');
+  }).join('');
+  var legenda='<div style="display:flex;gap:12px;align-items:center">'+
+    '<div style="display:flex;gap:5px;align-items:center"><div style="width:10px;height:10px;border-radius:2px;background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.4)"></div><span style="font-size:10px;color:var(--muted)">Aula</span></div>'+
+    '<div style="font-size:10px;color:var(--muted)">'+Object.keys(slotMap).length+' slots proprios</div>'+
+    '</div>';
+  document.getElementById('tab-content').innerHTML='<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px"><div class="section-title" style="margin-bottom:0">Grade Semanal</div>'+legenda+'</div><div style="overflow-x:auto"><div class="rotina-grid" style="min-width:500px"><div></div>'+DLBL.map(function(d){return'<div class="rotina-header">'+d+'</div>';}).join('')+grid+'</div></div></div>';
 }
 
-var _prescritaEditMap=[],_prescritaMaterias=[],_prescritaMatAtiva=null;
+var _prescritaEditMap={},_prescritaMaterias=[],_prescritaMatAtiva=null,_prescritaAulaSet=new Set();
 async function renderRotinaPrescrita() {
   var sb=window._sb, uid=selectedUser.id;
-  var res=await Promise.all([sb.from('materias').select('id,nome,cor').eq('user_id',uid),sb.from('rotina_prescrita').select('*').eq('aluno_id',uid),sb.from('profiles').select('meta_horas_semana,obs_educador').eq('id',uid).single()]);
-  _prescritaMaterias=res[0].data||[];_prescritaEditMap={};(res[1].data||[]).forEach(function(r){_prescritaEditMap[r.slot_key]=r.materia;});
+  var res=await Promise.all([
+    sb.from('materias').select('id,nome,cor').eq('user_id',uid),
+    sb.from('rotina_prescrita').select('*').eq('aluno_id',uid),
+    sb.from('profiles').select('meta_horas_semana,obs_educador').eq('id',uid).single()
+  ]);
+  _prescritaMaterias=res[0].data||[];
+  _prescritaEditMap={};
+  _prescritaAulaSet=new Set();
+  (res[1].data||[]).forEach(function(r){
+    if(r.is_aula) _prescritaAulaSet.add(r.slot_key);
+    else _prescritaEditMap[r.slot_key]=r.materia;
+  });
   var meta=res[2].data?(res[2].data.meta_horas_semana||10):10, obs=res[2].data?(res[2].data.obs_educador||''):'';
   var DIAS=['seg','ter','qua','qui','sex','sab','dom'],DLBL=['Seg','Ter','Qua','Qui','Sex','Sab','Dom'],horas=[];
   for(var h=7;h<=22;h++)for(var m=0;m<60;m+=15)horas.push((h<10?'0':'')+h+':'+(m<10?'0':'')+m);
-  var preench=Object.keys(_prescritaEditMap).length,hPres=Math.round(preench*15/60*10)/10;
+  // Aula set por hora (para marcar blocos no grid)
+  var aulaHoras=new Set();
+  _prescritaAulaSet.forEach(function(k){ var p=k.split('-'); aulaHoras.add(p[0]+'-'+p[1].substring(0,2)); });
+  var preench=Object.keys(_prescritaEditMap).length, hPres=Math.round(preench*15/60*10)/10;
+  var aulaH=Math.round(_prescritaAulaSet.size*10)/10;
   var legenda=_prescritaMaterias.map(function(m){var cor=_CORES[m.cor]||_CORES[0];return'<button class="filter-btn" style="border-color:'+cor+';color:'+cor+'" onclick="prescritaSelecionarMateria(\''+m.id+'\')">'+m.nome+'</button>';}).join('')+'<button class="filter-btn" style="border-color:#f07c7c;color:#f07c7c" onclick="prescritaSelecionarMateria(null)">x Apagar</button>';
-  var gridSlots=horas.map(function(hora){return'<div class="rotina-hora">'+hora+'</div>'+DIAS.map(function(dia){var key=dia+'-'+hora,mat=_prescritaEditMap[key]||'',mObj=_prescritaMaterias.find(function(m){return m.id===mat;}),nome=mObj?mObj.nome:'';return'<div class="rotina-slot '+(mat?'filled':'')+'" id="ps-'+key+'" onclick="prescritaToggleSlot(\''+key+'\')" style="cursor:pointer" title="'+nome+'">'+nome.substring(0,5)+'</div>';}).join('');}).join('');
+  var gridSlots=horas.map(function(hora){
+    return'<div class="rotina-hora">'+hora+'</div>'+DIAS.map(function(dia){
+      var key=dia+'-'+hora;
+      var hourKey=dia+'-'+hora.substring(0,2);
+      if(aulaHoras.has(hourKey)){
+        return'<div class="rotina-slot" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);cursor:not-allowed" title="Horario de aula (configurado em Vinculo)"><div style="font-size:7px;color:rgba(251,191,36,0.5);line-height:1">aula</div></div>';
+      }
+      var mat=_prescritaEditMap[key]||'',mObj=_prescritaMaterias.find(function(m){return m.id===mat;}),nome=mObj?mObj.nome:'';
+      return'<div class="rotina-slot '+(mat?'filled':'')+'" id="ps-'+key+'" onclick="prescritaToggleSlot(\''+key+'\')" style="cursor:pointer" title="'+nome+'">'+nome.substring(0,5)+'</div>';
+    }).join('');
+  }).join('');
   document.getElementById('tab-content').innerHTML=
     '<div class="section"><div class="section-title">Meta Semanal</div><div class="item-card" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">'+
     '<div style="flex:1;min-width:160px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Horas/semana</div><div style="display:flex;align-items:center;gap:8px"><input type="number" id="meta-horas-input" value="'+meta+'" min="1" max="168" step="0.5" style="width:80px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:\'DM Mono\',monospace;font-size:13px;outline:none"><span style="font-size:12px;color:var(--muted)">h/sem</span></div></div>'+
     '<div style="flex:2;min-width:200px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Orientacoes ao aluno</div><textarea id="obs-educador-input" rows="2" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:\'DM Mono\',monospace;font-size:12px;outline:none;resize:vertical" placeholder="Ex: focar em Matematica...">'+obs+'</textarea></div>'+
     '<button onclick="salvarMeta()" style="align-self:flex-end;padding:8px 18px;background:rgba(74,159,255,0.15);border:1px solid rgba(74,159,255,0.3);color:var(--accent);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer">Salvar meta</button></div></div>'+
-    '<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px"><div><div class="section-title" style="margin-bottom:4px">Grade Prescrita</div><div style="font-size:11px;color:var(--muted)">'+preench+' slots - '+hPres+'h</div></div>'+
-    '<div style="display:flex;gap:8px"><button onclick="prescritaLimparTudo()" style="padding:6px 14px;background:rgba(240,124,124,0.1);border:1px solid rgba(240,124,124,0.2);color:#f07c7c;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer">Limpar</button>'+
-    '<button onclick="salvarRotinaPrescrita()" style="padding:6px 18px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer;font-weight:600">Salvar rotina</button></div></div>'+
+    '<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px"><div>'+
+    '<div class="section-title" style="margin-bottom:4px">Prescricoes Extras</div>'+
+    '<div style="font-size:11px;color:var(--muted)">'+preench+' slots extras — '+hPres+'h</div>'+
+    '<div style="font-size:11px;color:rgba(251,191,36,0.6);margin-top:2px">'+_prescritaAulaSet.size+' slots de aula (via Vinculo) — bloqueados</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px"><button onclick="prescritaLimparTudo()" style="padding:6px 14px;background:rgba(240,124,124,0.1);border:1px solid rgba(240,124,124,0.2);color:#f07c7c;border-radius:8px;font-family:\'DM Mono\',monospace;font-size:11px;cursor:pointer">Limpar extras</button>'+
+    '<button onclick="salvarRotinaPrescrita()" style="padding:6px 18px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer;font-weight:600">Salvar extras</button></div></div>'+
     '<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Materia ativa:</div><div style="display:flex;gap:6px;flex-wrap:wrap" id="prescrita-legenda">'+legenda+'</div></div>'+
     '<div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="prescrita-ativa-label">Nenhuma selecionada</div>'+
     '<div style="overflow-x:auto"><div class="rotina-grid" style="min-width:500px"><div></div>'+DLBL.map(function(d){return'<div class="rotina-header">'+d+'</div>';}).join('')+gridSlots+'</div></div></div>';
@@ -1029,10 +1193,24 @@ async function renderRotinaPrescrita() {
 }
 
 function prescritaSelecionarMateria(matId){_prescritaMatAtiva=matId;var mObj=matId?_prescritaMaterias.find(function(m){return m.id===matId;}):null;var lbl=document.getElementById('prescrita-ativa-label');if(lbl)lbl.innerHTML='Materia ativa: <strong style="color:var(--text)">'+(mObj?mObj.nome:'Apagar')+'</strong>';}
-function prescritaToggleSlot(key){var el=document.getElementById('ps-'+key);if(!el)return;if(_prescritaMatAtiva===null){delete _prescritaEditMap[key];el.textContent='';el.classList.remove('filled');el.style.background='';el.style.borderColor='';}else{var mObj=_prescritaMaterias.find(function(m){return m.id===_prescritaMatAtiva;});var cor=mObj?(_CORES[mObj.cor]||_CORES[0]):'var(--accent)';_prescritaEditMap[key]=_prescritaMatAtiva;el.textContent=mObj?mObj.nome.substring(0,5):'';el.classList.add('filled');el.style.background=cor+'22';el.style.borderColor=cor+'66';}}
+function prescritaToggleSlot(key){
+  // Nao permite editar slots de aula
+  var hourKey=key.split('-')[0]+'-'+key.split('-')[1].substring(0,2);
+  var aulaHoras=new Set(); _prescritaAulaSet.forEach(function(k){ var p=k.split('-'); aulaHoras.add(p[0]+'-'+p[1].substring(0,2)); });
+  if(aulaHoras.has(hourKey)) return;
+  var el=document.getElementById('ps-'+key);if(!el)return;
+  if(_prescritaMatAtiva===null){delete _prescritaEditMap[key];el.textContent='';el.classList.remove('filled');el.style.background='';el.style.borderColor='';}
+  else{var mObj=_prescritaMaterias.find(function(m){return m.id===_prescritaMatAtiva;});var cor=mObj?(_CORES[mObj.cor]||_CORES[0]):'var(--accent)';_prescritaEditMap[key]=_prescritaMatAtiva;el.textContent=mObj?mObj.nome.substring(0,5):'';el.classList.add('filled');el.style.background=cor+'22';el.style.borderColor=cor+'66';}}
 function prescritaLimparTudo(){_prescritaEditMap={};document.querySelectorAll('[id^="ps-"]').forEach(function(el){el.textContent='';el.classList.remove('filled');el.style.background='';el.style.borderColor='';});}
 async function salvarMeta(){var sb=window._sb,meta=parseFloat(document.getElementById('meta-horas-input').value)||10,obs=document.getElementById('obs-educador-input').value||'';var r=await sb.from('profiles').update({meta_horas_semana:meta,obs_educador:obs}).eq('id',selectedUser.id);if(r.error)showToast('Erro: '+r.error.message,'error');else showToast('Meta salva!');}
-async function salvarRotinaPrescrita(){var sb=window._sb,uid=selectedUser.id;await sb.from('rotina_prescrita').delete().eq('aluno_id',uid);var slots=Object.entries(_prescritaEditMap).map(function(e){return{id:uid+'-'+e[0],aluno_id:uid,prescrita_por:currentProfile.id,slot_key:e[0],materia:e[1]};});if(slots.length){var r=await sb.from('rotina_prescrita').insert(slots);if(r.error){showToast('Erro: '+r.error.message,'error');return;}}showToast('Rotina prescrita salva — '+slots.length+' slots!');}
+async function salvarRotinaPrescrita(){
+  var sb=window._sb,uid=selectedUser.id;
+  // Apaga apenas extras (nao-aula), preserva slots de aula
+  await sb.from('rotina_prescrita').delete().eq('aluno_id',uid).eq('is_aula',false);
+  var slots=Object.entries(_prescritaEditMap).map(function(e){return{id:uid+'-'+e[0],aluno_id:uid,prescrita_por:currentProfile.id,slot_key:e[0],materia:e[1],is_aula:false};});
+  if(slots.length){var r=await sb.from('rotina_prescrita').insert(slots);if(r.error){showToast('Erro: '+r.error.message,'error');return;}}
+  showToast('Prescricoes extras salvas — '+slots.length+' slots!');
+}
 
 async function renderRelatorio() {
   var sb=window._sb, uid=selectedUser.id;
