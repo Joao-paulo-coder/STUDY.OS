@@ -918,10 +918,7 @@ function toggleDiaVinculo(cursoId, dia) {
       selDias.add(d);
       var t = data.diaMap[d];
       if(t && !slots[d]){
-        var ini=parseInt(t.horario_inicio.substring(0,2)), fim=parseInt(t.horario_fim.substring(0,2));
-        var s=new Set();
-        for(var h=ini;h<fim;h++) s.add((h<10?'0':'')+h+':00');
-        slots[d]=s;
+        slots[d]=new Set(); // vazio — usuario seleciona manualmente
       }
     });
   }
