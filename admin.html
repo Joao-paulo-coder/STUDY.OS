@@ -313,6 +313,8 @@ var CORES = ['#34d399','#7cc8f0','#fb923c','#f87171','#a78bfa','#4a9fff'];
 var todosCursos = [];
 var todasTurmas = [];
 var selectedTurma = null;
+var _vinculoSel  = {};   // cursoId -> turmaId selecionada
+var _vinculoData = {};   // cursoId -> {turmas, diaMap}
 
 // Horarios fixos disponiveis
 var HORARIOS_FIXOS = [
@@ -767,7 +769,7 @@ async function renderVinculo() {
   var uid = selectedUser.id;
   var res = await Promise.all([
     sb.from('cursos').select('id,nome').order('nome'),
-    sb.from('turmas').select('id,curso_id,nome,horario_inicio,horario_fim').order('nome'),
+    sb.from('turmas').select('id,curso_id,nome,dias,horario_inicio,horario_fim').order('nome'),
     sb.from('turma_membros').select('turma_id,curso_id').eq('user_id',uid),
     sb.from('materias').select('id,nome,cor').eq('user_id',uid),
   ]);
@@ -776,45 +778,94 @@ async function renderVinculo() {
   var vinculos = res[2].data||[];
   var materias = res[3].data||[];
 
-  // Monta mapa curso -> turma atual do aluno
-  var turmaAtualPorCurso = {};
-  vinculos.forEach(function(v){ turmaAtualPorCurso[v.curso_id] = v.turma_id; });
+  // Inicializa selecao atual
+  _vinculoSel  = {};
+  _vinculoData = {};
+  vinculos.forEach(function(v){ _vinculoSel[v.curso_id] = v.turma_id; });
 
-  var cursosHtml = cursos.map(function(curso) {
-    var turmasDoCurso = turmas.filter(function(t){ return t.curso_id===curso.id; });
-    var atual = turmaAtualPorCurso[curso.id]||'';
-    return '<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">'+curso.nome+'</div>' +
-      '<div style="display:flex;gap:10px;align-items:center">' +
-      '<select class="form-select" id="vinculo-'+curso.id+'" style="flex:1">' +
-      '<option value="">— Sem turma —</option>' +
-      turmasDoCurso.map(function(t){
-        return '<option value="'+t.id+'"'+(atual===t.id?' selected':'')+'>'+t.nome+' ('+t.horario_inicio.substring(0,5)+'-'+t.horario_fim.substring(0,5)+')</option>';
-      }).join('') +
-      '</select>' +
-      '<button class="btn-add" onclick="salvarVinculo(\''+curso.id+'\')">Salvar</button>' +
+  // Monta dados por curso (turmas + mapa dia->turma)
+  cursos.forEach(function(curso){
+    var tdc = turmas.filter(function(t){ return t.curso_id===curso.id; });
+    var dm  = {};
+    tdc.forEach(function(t){ (t.dias||[]).forEach(function(d){ dm[d]=t; }); });
+    _vinculoData[curso.id] = {turmas:tdc, diaMap:dm};
+  });
+
+  var DIAS_ORDER = ['seg','ter','qua','qui','sex','sab'];
+  var DIAS_LABEL = {seg:'Segunda',ter:'Terca',qua:'Quarta',qui:'Quinta',sex:'Sexta',sab:'Sabado'};
+
+  var cursosHtml = cursos.map(function(curso){
+    var cards = DIAS_ORDER.map(function(dia){
+      var turma = (_vinculoData[curso.id]||{diaMap:{}}).diaMap[dia];
+      if (!turma) return '';
+      var isActive = (_vinculoSel[curso.id]||'') === turma.id;
+      var ini = turma.horario_inicio.substring(0,5);
+      var fim = turma.horario_fim.substring(0,5);
+      var bg  = isActive ? 'background:rgba(74,159,255,0.12);border-color:var(--accent)' : 'background:rgba(255,255,255,0.02)';
+      var tc  = isActive ? 'color:var(--accent)' : 'color:var(--text)';
+      return '<div id="dc-'+curso.id+'-'+dia+'" onclick="selecionarDiaTurma(\''+curso.id+'\',\''+turma.id+'\')" ' +
+        'style="cursor:pointer;padding:12px 14px;border:1px solid var(--border);border-radius:10px;text-align:center;min-width:86px;transition:all 0.2s;'+bg+'">' +
+        '<div style="font-size:12px;font-weight:600;margin-bottom:5px;'+tc+'">'+DIAS_LABEL[dia]+'</div>' +
+        '<div style="font-size:10px;color:var(--muted)">'+ini+' – '+fim+'</div>' +
+        '</div>';
+    }).join('');
+    var turmaAtualObj = (_vinculoData[curso.id]||{turmas:[]}).turmas.find(function(t){ return t.id===(_vinculoSel[curso.id]||''); });
+    var lblTurma = turmaAtualObj ? ('Turma: '+turmaAtualObj.nome) : 'Sem turma selecionada';
+    return '<div style="margin-bottom:20px">'+
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;text-transform:uppercase">'+curso.nome+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">'+cards+'</div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">'+
+      '<div style="font-size:11px;color:var(--muted)" id="turma-label-'+curso.id+'">'+lblTurma+'</div>'+
+      '<button class="btn-add" onclick="salvarVinculo(\''+curso.id+'\')">Salvar</button>'+
       '</div></div>';
   }).join('');
 
   var matsHtml = materias.length
-    ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
+    ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">'+
         materias.map(function(m){
-          return '<span class="materia-chip" style="border-left:3px solid '+(CORES[m.cor]||'var(--accent)')+';padding-left:8px">' +
-            m.nome + ' <span onclick="deletarMateria(\''+m.id+'\')" style="cursor:pointer;color:var(--red);margin-left:4px">x</span></span>';
-        }).join('') + '</div>'
+          return '<span class="materia-chip" style="border-left:3px solid '+(CORES[m.cor]||'var(--accent)')+';padding-left:8px">'+
+            m.nome+' <span onclick="deletarMateria(\''+m.id+'\')" style="cursor:pointer;color:var(--red);margin-left:4px">x</span></span>';
+        }).join('')+'</div>'
     : '<div style="color:var(--muted);font-size:12px;margin-bottom:12px">Nenhuma materia cadastrada.</div>';
 
   document.getElementById('tab-content').innerHTML =
-    '<div class="section"><div class="section-title">Turma do aluno</div><div class="item-card">'+cursosHtml+'</div></div>' +
-    '<div class="section">' +
-      '<div class="section-header"><div class="section-title">Materias</div><button class="btn-add" onclick="abrirModalMateria()">+ Nova Materia</button></div>' +
-      matsHtml +
+    '<div class="section"><div class="section-title">Turma do aluno</div><div class="item-card">'+cursosHtml+'</div></div>'+
+    '<div class="section">'+
+      '<div class="section-header"><div class="section-title">Materias</div><button class="btn-add" onclick="abrirModalMateria()">+ Nova Materia</button></div>'+
+      matsHtml+
     '</div>';
+}
+
+function selecionarDiaTurma(cursoId, turmaId) {
+  // Toggle: clicar no mesmo turma desseleciona
+  _vinculoSel[cursoId] = (_vinculoSel[cursoId]===turmaId) ? '' : turmaId;
+  var selected = _vinculoSel[cursoId]||'';
+  var data = _vinculoData[cursoId]||{diaMap:{}};
+  var DIAS_ORDER = ['seg','ter','qua','qui','sex','sab'];
+  // Atualiza visual de cada dia
+  DIAS_ORDER.forEach(function(dia){
+    var turma = data.diaMap[dia];
+    if (!turma) return;
+    var el = document.getElementById('dc-'+cursoId+'-'+dia);
+    if (!el) return;
+    var isActive = selected===turma.id;
+    el.style.background   = isActive ? 'rgba(74,159,255,0.12)' : 'rgba(255,255,255,0.02)';
+    el.style.borderColor  = isActive ? 'var(--accent)' : 'var(--border)';
+    var title = el.querySelector('div');
+    if (title) title.style.color = isActive ? 'var(--accent)' : 'var(--text)';
+  });
+  // Atualiza label
+  var lbl = document.getElementById('turma-label-'+cursoId);
+  if (lbl) {
+    var t = (data.turmas||[]).find(function(t){ return t.id===selected; });
+    lbl.textContent = t ? ('Turma: '+t.nome) : 'Sem turma selecionada';
+  }
 }
 
 async function salvarVinculo(cursoId) {
   var sb      = window._sb;
   var uid     = selectedUser.id;
-  var turmaId = document.getElementById('vinculo-'+cursoId).value;
+  var turmaId = _vinculoSel[cursoId]||'';
 
   // Remove vinculo atual neste curso
   await sb.from('turma_membros').delete().eq('user_id',uid).eq('curso_id',cursoId);
