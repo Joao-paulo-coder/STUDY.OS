@@ -319,6 +319,11 @@ var _vinculoData  = {};  // cursoId -> {turmas, diaMap}
 var DIAS_ORDER = ['seg','ter','qua','qui','sex','sab'];
 var DIAS_LABEL = {seg:'Segunda',ter:'Terca',qua:'Quarta',qui:'Quinta',sex:'Sexta',sab:'Sabado'};
 var DIAS_FULL  = {seg:'Segunda-feira',ter:'Terca-feira',qua:'Quarta-feira',qui:'Quinta-feira',sex:'Sexta-feira',sab:'Sabado'};
+var _calImgB64   = null;
+var _calMimeType = null;
+var _calSlots    = [];
+var _calMaterias = [];
+var SUPABASE_FN_URL = 'https://zafhdlehaukexusnpojm.supabase.co/functions/v1';
 
 // Horarios fixos disponiveis
 var HORARIOS_FIXOS = [
@@ -826,7 +831,7 @@ async function renderVinculo() {
     : '<div style="color:var(--muted);font-size:12px;margin-bottom:12px">Nenhuma materia cadastrada.</div>';
 
   document.getElementById('tab-content').innerHTML =
-    '<div class="section"><div class="section-title">Horario de Aulas</div>'+cursosHtml+'</div>'+
+    '<div class="section"><div class="section-header"><div class="section-title">Horario de Aulas</div><button class="btn-add" onclick="abrirModalImportarCalendario()">&#128247; Importar Calendario</button></div>'+cursosHtml+'</div>'+
     '<div class="section">'+
       '<div class="section-header"><div class="section-title">Materias</div><button class="btn-add" onclick="abrirModalMateria()">+ Nova Materia</button></div>'+
       matsHtml+'</div>';
@@ -992,6 +997,171 @@ async function salvarHorarioVinculo(cursoId) {
   await carregarGrupos();
 }
 
+// ===================================================================
+// IMPORTAR CALENDARIO ESCOLAR (IA)
+// ===================================================================
+async function abrirModalImportarCalendario() {
+  _calImgB64   = null;
+  _calMimeType = null;
+  _calSlots    = [];
+
+  // Carrega materias do aluno para matching
+  var sb  = window._sb;
+  var uid = selectedUser.id;
+  var r   = await sb.from('materias').select('id,nome').eq('user_id',uid);
+  _calMaterias = r.data||[];
+
+  document.getElementById('modal-box').innerHTML =
+    '<div class="modal-title">&#128247; Importar Calendario Escolar</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:16px">Envie uma foto ou screenshot do horario de aulas do aluno. A IA vai extrair os dias, horarios e materias automaticamente.</div>'+
+
+    '<div id="cal-drop" onclick="document.getElementById(\'cal-file-input\').click()" '+
+      'style="border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color 0.2s;background:rgba(255,255,255,0.01)" '+
+      'onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+
+      '<div style="font-size:24px;margin-bottom:8px">&#128444;</div>'+
+      '<div style="font-size:12px;color:var(--muted)">Clique para selecionar imagem</div>'+
+      '<div style="font-size:10px;color:var(--muted);margin-top:4px">PNG, JPG, WEBP</div>'+
+    '</div>'+
+    '<input type="file" id="cal-file-input" accept="image/*" style="display:none" onchange="_handleCalFile(this.files[0])">'+
+
+    '<div id="cal-preview-wrap" style="display:none;margin-top:12px;text-align:center">'+
+      '<img id="cal-preview-img" style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border)">'+
+      '<div style="margin-top:8px">'+
+        '<button id="btn-analisar" onclick="analisarCalendario()" '+
+          'style="padding:8px 22px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.4);color:var(--accent2);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer">'+
+          '&#10024; Analisar com IA</button>'+
+      '</div>'+
+    '</div>'+
+
+    '<div id="cal-resultado" style="display:none;margin-top:16px">'+
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Slots extraidos</div>'+
+      '<div id="cal-slots-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.01)"></div>'+
+      '<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'+
+        '<div id="cal-count" style="font-size:11px;color:var(--muted)"></div>'+
+        '<button onclick="aplicarCalendarioExtraido()" '+
+          'style="padding:8px 20px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer;font-weight:600">'+
+          '&#10003; Aplicar a Rotina</button>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="modal-actions" style="margin-top:16px">'+
+      '<button class="btn-modal-cancel" onclick="fecharModal()">Fechar</button>'+
+    '</div>';
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function _handleCalFile(file) {
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var dataUrl = e.target.result;
+    _calImgB64   = dataUrl.split(',')[1];
+    _calMimeType = dataUrl.split(':')[1].split(';')[0];
+    var img = document.getElementById('cal-preview-img');
+    if(img) img.src = dataUrl;
+    var wrap = document.getElementById('cal-preview-wrap');
+    if(wrap) wrap.style.display='block';
+    var drop = document.getElementById('cal-drop');
+    if(drop) drop.style.display='none';
+    var res = document.getElementById('cal-resultado');
+    if(res) res.style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analisarCalendario() {
+  if(!_calImgB64){ showToast('Selecione uma imagem primeiro','error'); return; }
+  var btn = document.getElementById('btn-analisar');
+  if(btn){ btn.disabled=true; btn.textContent='Analisando...'; }
+
+  try {
+    var session = (await window._sb.auth.getSession()).data.session;
+    var token   = session ? session.access_token : '';
+    var resp = await fetch(SUPABASE_FN_URL+'/parse-calendar', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({ image_base64: _calImgB64, mime_type: _calMimeType, materias: _calMaterias })
+    });
+    var data = await resp.json();
+    if(data.error){ showToast('Erro: '+data.error,'error'); if(btn){btn.disabled=false;btn.textContent='&#10024; Analisar com IA';} return; }
+
+    _calSlots = (data.slots||[]).filter(function(s){ return s.dia && s.hora; });
+    _renderCalSlots();
+    var res = document.getElementById('cal-resultado');
+    if(res) res.style.display='block';
+  } catch(e) {
+    showToast('Erro de rede: '+e.message,'error');
+  }
+  if(btn){ btn.disabled=false; btn.textContent='&#10024; Analisar com IA'; }
+}
+
+function _renderCalSlots() {
+  var list = document.getElementById('cal-slots-list');
+  var count = document.getElementById('cal-count');
+  if(!list) return;
+  if(!_calSlots.length){
+    list.innerHTML='<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Nenhum slot encontrado</div>';
+    if(count) count.textContent='';
+    return;
+  }
+  var rows = _calSlots.map(function(s,i){
+    var matMatch = _matchMateria(s.materia_nome, _calMaterias);
+    var matLabel = matMatch ? _calMaterias.find(function(m){return m.id===matMatch;}).nome : (s.materia_nome||'—');
+    var matchedStyle = matMatch ? 'color:var(--green)' : 'color:var(--muted)';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)">'+
+      '<div style="width:50px;font-size:11px;color:var(--accent)">'+DIAS_LABEL[s.dia]+'</div>'+
+      '<div style="width:44px;font-size:11px;color:var(--text)">'+s.hora+'</div>'+
+      '<div style="flex:1;font-size:11px;'+matchedStyle+'">'+matLabel+(matMatch?' &#10003;':'')+'</div>'+
+      '<div onclick="_removerCalSlot('+i+')" style="cursor:pointer;color:var(--red);font-size:11px;padding:2px 8px;border:1px solid rgba(240,124,124,0.2);border-radius:6px">x</div>'+
+    '</div>';
+  }).join('');
+  list.innerHTML = rows;
+  if(count) count.textContent = _calSlots.length+' slots — '+Object.keys(_calSlots.reduce(function(acc,s){acc[s.dia]=1;return acc;},{} )).length+' dias';
+}
+
+function _removerCalSlot(idx) {
+  _calSlots.splice(idx,1);
+  _renderCalSlots();
+}
+
+function _matchMateria(nome, materias) {
+  if(!nome||!materias.length) return null;
+  var n = nome.toLowerCase().trim();
+  var exact = materias.find(function(m){ return m.nome.toLowerCase()===n; });
+  if(exact) return exact.id;
+  var partial = materias.find(function(m){
+    var mn = m.nome.toLowerCase();
+    return mn.includes(n)||n.includes(mn);
+  });
+  return partial ? partial.id : null;
+}
+
+async function aplicarCalendarioExtraido() {
+  if(!_calSlots.length){ showToast('Nenhum slot para aplicar','error'); return; }
+  var sb  = window._sb;
+  var uid = selectedUser.id;
+
+  // Apaga slots de aula existentes
+  await sb.from('rotina_prescrita').delete().eq('aluno_id',uid).eq('is_aula',true);
+
+  // Monta registros
+  var registros = _calSlots.map(function(s){
+    var matId = _matchMateria(s.materia_nome, _calMaterias);
+    var key = s.dia+'-'+s.hora;
+    return { id: uid+'-aula-'+key, aluno_id:uid, prescrita_por:currentProfile.id, slot_key:key, materia:matId, is_aula:true };
+  });
+
+  var r = await sb.from('rotina_prescrita').insert(registros);
+  if(r.error){ showToast('Erro: '+r.error.message,'error'); return; }
+
+  showToast('Calendario aplicado — '+registros.length+' slots de aula!');
+  fecharModal();
+  // Recarrega a aba
+  await renderVinculo();
+}
+
+
 async function deletarMateria(materiaId) {
   var sb = window._sb;
   var r  = await sb.from('materias').delete().eq('id',materiaId).eq('user_id',selectedUser.id);
@@ -1136,7 +1306,7 @@ async function renderRotina() {
   document.getElementById('tab-content').innerHTML='<div class="section"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px"><div class="section-title" style="margin-bottom:0">Grade Semanal</div>'+legenda+'</div><div style="overflow-x:auto"><div class="rotina-grid" style="min-width:500px"><div></div>'+DLBL.map(function(d){return'<div class="rotina-header">'+d+'</div>';}).join('')+grid+'</div></div></div>';
 }
 
-var _prescritaEditMap={},_prescritaMaterias=[],_prescritaMatAtiva=null,_prescritaAulaSet=new Set();
+var _prescritaEditMap={},_prescritaMaterias=[],_prescritaMatAtiva=null,_prescritaAulaSet=new Set(),_prescritaAulaMap={};
 async function renderRotinaPrescrita() {
   var sb=window._sb, uid=selectedUser.id;
   var res=await Promise.all([
@@ -1147,8 +1317,9 @@ async function renderRotinaPrescrita() {
   _prescritaMaterias=res[0].data||[];
   _prescritaEditMap={};
   _prescritaAulaSet=new Set();
+  _prescritaAulaMap={};
   (res[1].data||[]).forEach(function(r){
-    if(r.is_aula) _prescritaAulaSet.add(r.slot_key);
+    if(r.is_aula){ _prescritaAulaSet.add(r.slot_key); if(r.materia) _prescritaAulaMap[r.slot_key]=r.materia; }
     else _prescritaEditMap[r.slot_key]=r.materia;
   });
   var meta=res[2].data?(res[2].data.meta_horas_semana||10):10, obs=res[2].data?(res[2].data.obs_educador||''):'';
@@ -1165,7 +1336,11 @@ async function renderRotinaPrescrita() {
       var key=dia+'-'+hora;
       var hourKey=dia+'-'+hora.substring(0,2);
       if(aulaHoras.has(hourKey)){
-        return'<div class="rotina-slot" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);cursor:not-allowed" title="Horario de aula (configurado em Vinculo)"><div style="font-size:7px;color:rgba(251,191,36,0.5);line-height:1">aula</div></div>';
+        var aulaMatId=_prescritaAulaMap[key]||'';
+        var aulaMatObj=aulaMatId?_prescritaMaterias.find(function(m){return m.id===aulaMatId;}):null;
+        var aulaLbl=aulaMatObj?aulaMatObj.nome.substring(0,5):'aula';
+        var aulaTitle='Horario de aula'+(aulaMatObj?' — '+aulaMatObj.nome:'');
+        return'<div class="rotina-slot" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);cursor:not-allowed" title="'+aulaTitle+'"><div style="font-size:7px;color:rgba(251,191,36,0.7);line-height:1">'+aulaLbl+'</div></div>';
       }
       var mat=_prescritaEditMap[key]||'',mObj=_prescritaMaterias.find(function(m){return m.id===mat;}),nome=mObj?mObj.nome:'';
       return'<div class="rotina-slot '+(mat?'filled':'')+'" id="ps-'+key+'" onclick="prescritaToggleSlot(\''+key+'\')" style="cursor:pointer" title="'+nome+'">'+nome.substring(0,5)+'</div>';
