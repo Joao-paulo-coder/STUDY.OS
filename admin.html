@@ -1029,7 +1029,7 @@ async function abrirModalImportarCalendario() {
       '<div style="margin-top:8px">'+
         '<button id="btn-analisar" onclick="analisarCalendario()" '+
           'style="padding:8px 22px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.4);color:var(--accent2);border-radius:8px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer">'+
-          '&#10024; Analisar com IA</button>'+
+          '✨ Analisar com IA</button>'+
       '</div>'+
     '</div>'+
 
@@ -1081,10 +1081,10 @@ async function analisarCalendario() {
     var resp = await fetch(SUPABASE_FN_URL+'/parse-calendar', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
-      body: JSON.stringify({ image_base64: _calImgB64, mime_type: _calMimeType, materias: _calMaterias })
+      body: JSON.stringify({ image_base64: _calImgB64, mime_type: _calMimeType, materias: _calMaterias, current_date: new Date().toISOString().split('T')[0] })
     });
     var data = await resp.json();
-    if(data.error){ showToast('Erro: '+data.error,'error'); if(btn){btn.disabled=false;btn.textContent='&#10024; Analisar com IA';} return; }
+    if(data.error){ showToast('Erro: '+data.error,'error'); if(btn){btn.disabled=false;btn.textContent='✨ Analisar com IA';} return; }
 
     _calSlots = (data.slots||[]).filter(function(s){ return s.dia && s.hora; });
     _renderCalSlots();
@@ -1093,7 +1093,7 @@ async function analisarCalendario() {
   } catch(e) {
     showToast('Erro de rede: '+e.message,'error');
   }
-  if(btn){ btn.disabled=false; btn.textContent='&#10024; Analisar com IA'; }
+  if(btn){ btn.disabled=false; btn.textContent='✨ Analisar com IA'; }
 }
 
 function _renderCalSlots() {
